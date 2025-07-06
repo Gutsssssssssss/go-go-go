@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	p := tea.NewProgram(tui.NewBoard("Hello World"))
+	p := tea.NewProgram(tui.New())
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}

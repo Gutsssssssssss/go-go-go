@@ -1,6 +1,9 @@
-package tui
+package theme
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
+	"github.com/yanmoyy/go-go-go/internal/tui/color"
+)
 
 type theme struct {
 	PrimaryColor lipgloss.Color // main color of the theme
@@ -8,7 +11,7 @@ type theme struct {
 
 func newTheme() *theme {
 	return &theme{
-		PrimaryColor: lipgloss.Color(golangBlue),
+		PrimaryColor: color.GolangBlue,
 	}
 }
 func GetTheme() *theme {
