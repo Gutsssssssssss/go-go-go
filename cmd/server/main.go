@@ -11,8 +11,10 @@ import (
 
 func main() {
 	const port = "8080"
+	s := server.NewServer()
+	go s.RunMatcher()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/queue/enter", server.HandleQueueEnter)
+	mux.HandleFunc("/api/queue/enter/", s.HandleQueueEnter)
 
 	srv := &http.Server{
 		Addr:        ":" + port,
