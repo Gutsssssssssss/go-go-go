@@ -8,12 +8,6 @@ import (
 
 type PageID string
 
-type PagePushMsg struct {
-	ID PageID
-}
-
-type PagePopMsg struct{}
-
 type Page struct {
 	tea.Model
 	layout.Sizable
@@ -32,3 +26,11 @@ func (p *Page) SetSize(width, height int) {
 func (p *Page) GetSize() (int, int) {
 	return p.window.width, p.window.height
 }
+
+// Messages
+
+type PagePushMsg struct {
+	ID PageID
+}
+
+type PagePopMsg struct{}
