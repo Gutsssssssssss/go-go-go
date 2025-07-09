@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"log"
 	"net/http"
 	"time"
@@ -11,10 +12,12 @@ import (
 
 func main() {
 	const port = "8080"
+
 	s := server.NewServer()
-	go s.RunMatcher()
+	go s.ListenMatchWaiting()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/queue/enter/", s.HandleQueueEnter)
+	mux.HandleFunc("/api/waiting/{id}", s.HandleWaiting)
+	mux.HandleFunc("/api/game/{id}", s.HandleGame)
 
 	srv := &http.Server{
 		Addr:        ":" + port,
