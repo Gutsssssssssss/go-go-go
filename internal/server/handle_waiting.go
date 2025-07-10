@@ -5,21 +5,22 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/yanmoyy/go-go-go/internal/api"
 )
 
 type waiting struct {
-	userID  string
+	userID  uuid.UUID
 	replyCh chan matchInfo
 }
 
 type matchInfo struct {
-	player1 string
-	player2 string
-	gameID  string
+	player1 uuid.UUID
+	player2 uuid.UUID
+	gameID  uuid.UUID
 }
 
-func newMatchInfo(player1, player2 string) matchInfo {
+func newMatchInfo(player1, player2 uuid.UUID) matchInfo {
 	gameID := createGameID()
 	return matchInfo{
 		player1: player1,
@@ -28,31 +29,47 @@ func newMatchInfo(player1, player2 string) matchInfo {
 	}
 }
 
-// gotta be uuid or unique something
-func createGameID() string {
-	return ""
+func createGameID() uuid.UUID {
+	return uuid.New()
 }
 
 func (s *Server) ListenMatchWaiting() {
-	var buf []waiting
-	for w := range s.waitingQueue {
-		buf = append(buf, w)
-		if len(buf) >= 2 {
-			// two waiting players
-			w1, w2 := buf[0], buf[1]
-			info := newMatchInfo(w1.userID, w2.userID)
-			w1.replyCh <- info
-			w2.replyCh <- info
-			// clear 2 waiting players
-			buf = buf[2:]
-			log.Printf("Matched! %s and %s\n", w1.userID, w2.userID)
-			s.createGameSession(info.gameID)
+	buf := make(map[uuid.UUID]waiting)
+	for {
+		select {
+		case w := <-s.waitingQueue:
+			buf[w.userID] = w
+			if len(buf) >= 2 {
+				// two waiting players
+				var w1, w2 waiting
+				for _, val := range buf {
+					if w1.userID == uuid.Nil {
+						w1 = val
+					} else {
+						w2 = val
+						break
+					}
+				}
+				info := newMatchInfo(w1.userID, w2.userID)
+				w1.replyCh <- info
+				w2.replyCh <- info
+				// clear 2 waiting players
+				delete(buf, w1.userID)
+				delete(buf, w2.userID)
+				log.Printf("Matched! %s and %s\n", w1.userID, w2.userID)
+				s.createGameSession(info.gameID)
+			}
+		case userID := <-s.removeQueue:
+			if _, ok := buf[userID]; ok {
+				delete(buf, userID)
+				log.Printf("Removed %s from waiting queue\n", userID)
+			}
 		}
 	}
 }
 
 // create game session
-func (s *Server) createGameSession(gameID string) {
+func (s *Server) createGameSession(gameID uuid.UUID) {
 	s.sessions[gameID] = NewSession()
 }
 
@@ -70,8 +87,10 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 
 	defer conn.Close()
 
-	idString := r.PathValue("id")
-	// TODO: change idString to more secure id (ex: uuid)
+	// TODO parsing idString from path and change to uuid
+	// idString := r.PathValue("id")
+	idString := uuid.New()
+
 	replyCh := make(chan matchInfo)
 	s.waitingQueue <- waiting{userID: idString, replyCh: replyCh}
 
@@ -85,6 +104,8 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	case <-time.After(timeout):
+		s.removeQueue <- idString
+		close(replyCh)
 		log.Println("Can not find other player")
 		if err := conn.WriteJSON(api.QueueMessage{
 			Message: "match_failed",
