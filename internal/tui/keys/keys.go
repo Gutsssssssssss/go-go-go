@@ -58,37 +58,20 @@ func Back() key.Binding {
 	)
 }
 
-type DefaultKeyMap struct {
-	Up    key.Binding
-	Down  key.Binding
-	Right key.Binding
-	Left  key.Binding
-	Enter key.Binding
-	Help  key.Binding
-	Quit  key.Binding
-	Back  key.Binding
+type KeyMap struct {
+	bindings []key.Binding
 }
 
-func GetDefaultKeyMap() DefaultKeyMap {
-	return DefaultKeyMap{
-		Up:    Up(),
-		Down:  Down(),
-		Right: Right(),
-		Left:  Left(),
-		Enter: Enter(),
-		Help:  Help(),
-		Quit:  Quit(),
-		Back:  Back(),
+func newKeyMap(bindings ...key.Binding) *KeyMap {
+	return &KeyMap{
+		bindings: bindings,
 	}
 }
 
-func (k DefaultKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Up, k.Down, k.Left, k.Right, k.Enter, k.Help, k.Quit}
+func (k *KeyMap) ShortHelp() []key.Binding {
+	return k.bindings
 }
 
-func (k DefaultKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Up, k.Down, k.Left, k.Right}, // first column
-		{k.Help, k.Quit},                // second column
-	}
+func (k *KeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{k.ShortHelp()}
 }
