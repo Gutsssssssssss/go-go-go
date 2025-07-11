@@ -11,7 +11,7 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/api"
 )
 
-func (c *Client) EnterQueue(id string) error {
+func (c *Client) StartWaiting(id string) error {
 	// web socket
 	u := url.URL{Scheme: "ws", Host: c.wsHost, Path: "/api/waiting/" + id}
 

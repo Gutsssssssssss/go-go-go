@@ -1,29 +1,26 @@
 package page
 
 import (
-	"github.com/charmbracelet/bubbles/help"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yanmoyy/go-go-go/internal/tui/layout"
 )
 
 type PageID string
 
-type Page struct {
+type page struct {
 	tea.Model
 	layout.Sizable
-	ID     PageID
-	help   help.Model
 	window struct {
 		width, height int
 	}
 }
 
-func (p *Page) SetSize(width, height int) {
+func (p *page) SetSize(width, height int) {
 	p.window.width = width
 	p.window.height = height
 }
 
-func (p *Page) GetSize() (int, int) {
+func (p *page) GetSize() (int, int) {
 	return p.window.width, p.window.height
 }
 
