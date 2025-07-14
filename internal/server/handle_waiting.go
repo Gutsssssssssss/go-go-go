@@ -70,7 +70,9 @@ func (s *Server) ListenMatchWaiting() {
 
 // create game session
 func (s *Server) createGameSession(gameID uuid.UUID) {
-	s.sessions[gameID] = NewSession()
+	session := NewSession()
+	s.sessions[gameID] = session
+	go session.ListenSession()
 }
 
 func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
@@ -87,12 +89,20 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 
 	defer conn.Close()
 
-	// TODO parsing idString from path and change to uuid
-	// idString := r.PathValue("id")
-	idString := uuid.New()
+	userID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		log.Printf("Error parsing userID: %s\n", err)
+		if err := conn.WriteJSON(api.QueueMessage{
+			Message: "not_found",
+		}); err != nil {
+			log.Printf("Error sending JSON: %s\n", err)
+		}
+		sendCloseMessage(conn)
+		return
+	}
 
 	replyCh := make(chan matchInfo)
-	s.waitingQueue <- waiting{userID: idString, replyCh: replyCh}
+	s.waitingQueue <- waiting{userID: userID, replyCh: replyCh}
 
 	select {
 	case info := <-replyCh:
@@ -104,7 +114,7 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	case <-time.After(timeout):
-		s.removeQueue <- idString
+		s.removeQueue <- userID
 		close(replyCh)
 		log.Println("Can not find other player")
 		if err := conn.WriteJSON(api.QueueMessage{
