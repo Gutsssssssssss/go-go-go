@@ -146,7 +146,8 @@ func (p *startPage) choiceView(text string, selected bool) string {
 		c = t.DefaultColor
 	}
 	return view.Button(view.ButtonProps{
-		Text:  text,
-		Color: c,
+		Text:        text,
+		TextColor:   c,
+		BorderColor: c,
 	})
 }

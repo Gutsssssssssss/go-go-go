@@ -15,8 +15,9 @@ type theme struct {
 
 func newTheme() *theme {
 	return &theme{
-		PrimaryColor: color.GolangBlue,
-		DefaultColor: color.White,
+		PrimaryColor:  color.GolangBlue,
+		DefaultColor:  color.White,
+		DisabledColor: color.Gray,
 		WaitingSpinner: spinner.New(spinner.WithSpinner(spinner.Points), spinner.WithStyle(
 			lipgloss.NewStyle().Foreground(color.GolangBlue)),
 		),

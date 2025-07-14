@@ -21,7 +21,7 @@ var (
 //
 // Example:
 // total = 5, trueCount = 3
-// return: [true, true, true, false, false]
+// return: [true, false, true, false, true]
 func getEvenlyDistributedBooleans(total, trueCount int) ([]bool, error) {
 	if total < trueCount {
 		return nil, ErrInvalidTotalBoolean
