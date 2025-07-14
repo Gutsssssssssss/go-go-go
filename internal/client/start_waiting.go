@@ -1,64 +1,72 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/url"
-	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
 )
 
-func (c *Client) StartWaiting(id string) error {
+func (c *Client) StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, error) {
+	idString := id.String()
 	// web socket
-	u := url.URL{Scheme: "ws", Host: c.wsHost, Path: "/api/waiting/" + id}
+	u := url.URL{Scheme: "ws", Host: c.wsHost, Path: "/ws/waiting/" + idString}
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		return fmt.Errorf("dial: %w", err)
+		return uuid.Nil, fmt.Errorf("dial: %w", err)
 	}
 	defer conn.Close()
 
-	// get response from server with conn
 	done := make(chan struct{})
+	errCh := make(chan error)
+	msgCh := make(chan api.QueueMessage)
 
 	go func() {
-		defer close(done)
 		for {
-			_, message, err := conn.ReadMessage()
-			if err != nil {
+			select {
+			case <-ctx.Done():
 				return
-			}
-			var msg api.QueueMessage
-			if err := json.Unmarshal(message, &msg); err != nil {
-				log.Printf("Error unmarshalling JSON: %s\n", err)
-				return
-			}
-			if msg.Message == "match_success" {
-				log.Printf("Successfully matched! %s\n", msg.GameID)
-				// TODO: Game start
-				return
-			}
-			if msg.Message == "match_failed" {
-				log.Printf("Failed to match! %s\n", msg.GameID)
-				return
+			default:
+				_, message, err := conn.ReadMessage()
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+					close(done)
+					return
+				}
+				if err != nil {
+					errCh <- err
+					return
+				}
+				slog.Debug("recv", "message", string(message))
+				var msg api.QueueMessage
+				if err := json.Unmarshal(message, &msg); err != nil {
+					errCh <- fmt.Errorf("unmarshal: %w", err)
+					return
+				}
+				msgCh <- msg
 			}
 		}
 	}()
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
 	for {
 		select {
-		case <-done:
-			return nil
-		case t := <-ticker.C:
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(t.String())); err != nil {
-				return err
+		case err := <-errCh:
+			return uuid.Nil, fmt.Errorf("read: %w", err)
+		case msg := <-msgCh:
+			if msg.Message == "match_success" {
+				return msg.GameID, nil
 			}
+			if msg.Message == "match_fail" {
+				return uuid.Nil, nil
+			}
+		case <-ctx.Done():
+			return uuid.Nil, nil
+		case <-done:
+			return uuid.Nil, nil
 		}
 	}
 }

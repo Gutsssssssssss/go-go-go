@@ -17,3 +17,7 @@ func NewClient(baseURL string, wsHost string) *Client {
 		client:  http.DefaultClient,
 	}
 }
+
+func DefaultClient() *Client {
+	return NewClient("http://localhost:8080", "localhost:8080")
+}

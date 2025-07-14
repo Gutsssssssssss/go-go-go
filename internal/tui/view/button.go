@@ -5,8 +5,9 @@ import (
 )
 
 type ButtonProps struct {
-	Text  string
-	Color lipgloss.Color
+	Text        string
+	TextColor   lipgloss.Color
+	BorderColor lipgloss.Color
 }
 
 func Button(p ButtonProps) string {
@@ -16,7 +17,7 @@ func Button(p ButtonProps) string {
 		Margin(0, 1).
 		Width(20).
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(p.Color).
-		Foreground(p.Color)
+		BorderForeground(p.BorderColor).
+		Foreground(p.TextColor)
 	return style.Render(p.Text)
 }
