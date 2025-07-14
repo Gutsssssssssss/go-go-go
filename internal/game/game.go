@@ -1,11 +1,7 @@
 package game
 
 type Game struct {
-	players []Player
-}
-
-type Player struct {
-	id string
+	Record any
 }
 
 func NewGame() *Game {
