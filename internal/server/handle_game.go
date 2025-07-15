@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -37,7 +38,7 @@ func (p *Player) readMessage() {
 		_, message, err := p.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("Error: %v\n", err)
+				slog.Error("could not read the message", "err", err)
 			}
 			break
 		}
@@ -61,7 +62,7 @@ func (p *Player) writeMessage() {
 				if err := p.conn.WriteJSON(api.QueueMessage{
 					Message: "The session closed the message channel",
 				}); err != nil {
-					log.Printf("Error sending JSON: %s\n", err)
+					slog.Error("sending JSON", "err", err)
 					sendCloseMessage(p.conn)
 				}
 			}
@@ -94,7 +95,7 @@ func (p *Player) writeMessage() {
 func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Websocket upgrade failed: %s\n", err)
+		slog.Error("Websocket upgrade failed", "err", err)
 		respondWithError(w, 400, "Bad request", nil)
 		return
 	}
@@ -105,17 +106,18 @@ func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 	_, message, err := conn.ReadMessage()
 	if err != nil {
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-			log.Printf("Error: %v\n", err)
+			slog.Error("could not read the message", "err", err)
 		}
 		return
 	}
 	err = json.Unmarshal(message, info)
 	if err != nil {
-		log.Printf("Can not parse the messages: %s", err)
+		slog.Error("could not parse the messages", "err", err)
 		if err := conn.WriteJSON(api.QueueMessage{
 			Message: "bad_request",
 		}); err != nil {
 			log.Printf("Error sending JSON: %s\n", err)
+			slog.Error("sending JSON", "err", err)
 		}
 		sendCloseMessage(conn)
 		return
@@ -123,15 +125,15 @@ func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 
 	gameID := info.GameID
 	userID := info.UserID
-	log.Printf("User %s entered Game %s", userID, gameID)
+	slog.Debug("Entered a game", "userID", userID, "gameID", gameID)
 
 	session := s.sessions[gameID]
 	if session == nil {
-		log.Printf("Can't find the session, gameID: %s\n", gameID)
+		slog.Debug("could not fint the session", "gameID", gameID)
 		if err := conn.WriteJSON(api.QueueMessage{
 			Message: "not_found",
 		}); err != nil {
-			log.Printf("Error sending JSON: %s\n", err)
+			slog.Error("sending JSON", "err", err)
 		}
 		sendCloseMessage(conn)
 		return

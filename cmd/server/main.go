@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/yanmoyy/go-go-go/internal/database"
+	"github.com/yanmoyy/go-go-go/internal/logging"
 	"github.com/yanmoyy/go-go-go/internal/server"
 )
 
@@ -29,6 +30,9 @@ func main() {
 		Handler:     mux,
 		ReadTimeout: 5 * time.Second,
 	}
+
+	// set logger
+	logging.SetPrettyDebugLogger()
 
 	fmt.Printf("Listening on port %s\n", port)
 	log.Fatal(srv.ListenAndServe())

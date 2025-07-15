@@ -6,12 +6,9 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"os"
 	"time"
 )
-
-type PrettyHandlerOptions struct {
-	SlogOpts slog.HandlerOptions
-}
 
 type PrettyHandler struct {
 	slog.Handler
@@ -20,17 +17,10 @@ type PrettyHandler struct {
 
 func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	level := r.Level.String() + ":"
+	msg := r.Message
 
-	switch r.Level {
-	case slog.LevelDebug:
-		level = magenta.Color(level)
-	case slog.LevelInfo:
-		level = blue.Color(level)
-	case slog.LevelWarn:
-		level = yellow.Color(level)
-	case slog.LevelError:
-		level = red.Color(level)
-	}
+	now := time.Now()
+	timeStr := darkGray.Color(now.Format("[15:04:05]"))
 
 	fields := make(map[string]any, r.NumAttrs())
 	r.Attrs(func(a slog.Attr) bool {
@@ -46,25 +36,47 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	if err != nil {
 		return err
 	}
+	switch r.Level {
+	case slog.LevelDebug:
+		level = white.Color(level)
+		msg = white.Color(msg)
+	case slog.LevelInfo:
+		level = cyan.Color(level)
+		msg = cyan.Color(msg)
+	case slog.LevelWarn:
+		level = yellow.Color(level)
+		msg = yellow.Color(msg)
+	case slog.LevelError:
+		level = red.Color(level)
+		msg = red.Color(msg)
+	}
 
-	now := time.Now()
-	timeStr := gray.Color(now.Format("[15:04:05.000]"))
-
-	msg := cyan.Color(r.Message)
-
-	h.l.Println(timeStr, level, msg, white.Color(string(b)))
-
+	data := string(b)
+	if data == "{}" {
+		h.l.Println(timeStr, level, msg)
+	} else {
+		h.l.Println(timeStr, level, msg, gray.Color(data))
+	}
 	return nil
 }
 
 func NewPrettyHandler(
 	out io.Writer,
-	opts PrettyHandlerOptions,
+	opts *slog.HandlerOptions,
 ) *PrettyHandler {
 	h := &PrettyHandler{
-		Handler: slog.NewJSONHandler(out, &opts.SlogOpts),
+		Handler: slog.NewJSONHandler(out, opts),
 		l:       log.New(out, "", 0),
 	}
 
 	return h
+}
+
+func SetPrettyDebugLogger() {
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
+	h := NewPrettyHandler(os.Stderr, opts)
+	logger := slog.New(h)
+	slog.SetDefault(logger)
 }

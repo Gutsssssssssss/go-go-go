@@ -22,7 +22,8 @@ const (
 type extendedAnsi int
 
 const (
-	gray extendedAnsi = 245
+	darkGray extendedAnsi = 240
+	gray     extendedAnsi = 248
 )
 
 func (a ansi) Color(s string) string {

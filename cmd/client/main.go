@@ -17,11 +17,8 @@ func main() {
 	flag.Parse()
 	if *debug {
 		f, err := tea.LogToFile("debug.log", "")
-		prettyHandler := logging.NewPrettyHandler(f, logging.PrettyHandlerOptions{
-			SlogOpts: slog.HandlerOptions{
-				Level: slog.LevelDebug,
-			},
-		})
+		opts := &slog.HandlerOptions{Level: slog.LevelDebug}
+		prettyHandler := logging.NewPrettyHandler(f, opts)
 		logger := slog.New(prettyHandler)
 		slog.SetDefault(logger)
 		slog.SetLogLoggerLevel(slog.LevelDebug)

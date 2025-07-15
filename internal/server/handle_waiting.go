@@ -1,7 +1,7 @@
 package server
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -56,13 +56,13 @@ func (s *Server) ListenMatchWaiting() {
 				// clear 2 waiting players
 				delete(buf, w1.userID)
 				delete(buf, w2.userID)
-				log.Printf("Matched! %s and %s\n", w1.userID, w2.userID)
+				slog.Info("Matched!", "user1", w1.userID, "user2", w.userID)
 				s.createGameSession(info.gameID)
 			}
 		case userID := <-s.removeQueue:
 			if _, ok := buf[userID]; ok {
 				delete(buf, userID)
-				log.Printf("Removed %s from waiting queue\n", userID)
+				slog.Info("Removed %s from waiting queue", "userID", userID)
 			}
 		}
 	}
@@ -72,6 +72,7 @@ func (s *Server) ListenMatchWaiting() {
 func (s *Server) createGameSession(gameID uuid.UUID) {
 	session := NewSession()
 	s.sessions[gameID] = session
+	slog.Debug("Start listening the session", "gameID", gameID)
 	go session.ListenSession()
 }
 
@@ -82,7 +83,7 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Websocket upgrade failed: %s\n", err)
+		slog.Error("Websocket upgrade failed", "err", err)
 		respondWithError(w, 400, "Bad request", nil)
 		return
 	}
@@ -91,11 +92,11 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		log.Printf("Error parsing userID: %s\n", err)
+		slog.Error("parsing userID", "err", err)
 		if err := conn.WriteJSON(api.QueueMessage{
 			Message: "not_found",
 		}); err != nil {
-			log.Printf("Error sending JSON: %s\n", err)
+			slog.Error("Sending JSON", "err", err)
 		}
 		sendCloseMessage(conn)
 		return
@@ -109,18 +110,18 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 		if err := conn.WriteJSON(api.QueueMessage{
 			Message: "match_success", GameID: info.gameID,
 		}); err != nil {
-			log.Printf("Error sending JSON: %s\n", err)
+			slog.Error("Sending json", "err", err)
 			sendCloseMessage(conn)
 		}
 		return
 	case <-time.After(timeout):
 		s.removeQueue <- userID
 		close(replyCh)
-		log.Println("Can not find other player")
+		slog.Debug("Can not find other player", "userID", userID)
 		if err := conn.WriteJSON(api.QueueMessage{
 			Message: "match_failed",
 		}); err != nil {
-			log.Printf("Error sending JSON: %s\n", err)
+			slog.Error("sending JSON", "err", err)
 		}
 		sendCloseMessage(conn)
 		return

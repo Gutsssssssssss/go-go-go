@@ -10,7 +10,6 @@ import (
 )
 
 func (c *Client) GetID() (uuid.UUID, error) {
-	return uuid.New(), nil // TODO: delete this
 	url := c.baseURL + "/api/user/id"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

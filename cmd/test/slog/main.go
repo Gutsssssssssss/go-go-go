@@ -8,11 +8,7 @@ import (
 )
 
 func main() {
-	opts := logging.PrettyHandlerOptions{
-		SlogOpts: slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		},
-	}
+	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
 	handler := logging.NewPrettyHandler(os.Stdout, opts)
 	logger := slog.New(handler)
 	logger.Debug(
@@ -27,5 +23,8 @@ func main() {
 	logger.Error(
 		"An error occurred while processing the request",
 		slog.String("url", "https://example.com"),
+	)
+	logger.Debug(
+		"Empty key values",
 	)
 }
