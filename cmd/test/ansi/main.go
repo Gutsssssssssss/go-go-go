@@ -40,6 +40,11 @@ const (
 	// extended colors
 )
 
+var (
+	red   = RGB(255, 0, 0)
+	green = RGB(0, 255, 0)
+)
+
 func RGB(r, g, b uint8) func(string) string {
 	return func(s string) string {
 		return fmt.Sprintf("\033[38;2;%d;%d;%dm%s\033[0m", r, g, b, s)
@@ -97,5 +102,4 @@ func main() {
 	fmt.Println("\n24 bit colors:")
 	fmt.Println(RGB(255, 0, 0)("Red"))
 	fmt.Println(RGB(0, 255, 0)("Green"))
-
 }

@@ -84,7 +84,7 @@ func (p *lobbyPage) startWaiting() {
 		defer cancel()
 		gameID, err := p.client.StartWaiting(p.data.id, ctx)
 		if err != nil {
-			slog.Error("Connection Error", "err", err)
+			slog.Debug("Connection Error", "err", err)
 			p.status = lobbyConnectionErr
 			return
 		}

@@ -11,11 +11,10 @@ var (
 	ErrInvalidCount = fmt.Errorf("invalid count")
 )
 
-// getEvenlyDistributedBooleans return a slice of evenly splited elements.
+// getEvenlyDistributedBooleans return a slice of evenly distributed booleans.
 //
-// It always try to split symmetrically, and true values are always trying to
-// be distributed to the each sides (left and right).
-//
+// It always try to distribute symmetrically, and true values are always trying to
+// be placed to the each sides (left and right).
 // If total is even and trueCount is odd,
 // the last value will be on the right side of the middle.
 //
@@ -54,8 +53,9 @@ func getEvenlyDistributedBooleans(total, trueCount int) ([]bool, error) {
 }
 
 // getEvenlySplitedSlice return a slice of evenly splited elements
-// with sum of elements equals to total, and len(slice) == count
-// it always try to split symmetrically
+// with sum of elements equals to total, and len(slice) == count.
+//
+// It always try to split symmetrically.
 //
 // Example:
 // total = 10, count = 3
