@@ -8,8 +8,8 @@ const (
 )
 
 type QueueMessage struct {
-	Message string           `json:"message"`
-	Data    QueueMessageData `json:"data"`
+	Message string            `json:"message"`
+	Data    *QueueMessageData `json:"data,omitempty"`
 }
 
 type QueueMessageData struct {

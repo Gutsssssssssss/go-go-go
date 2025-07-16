@@ -27,7 +27,7 @@ type sessionInfo struct {
 func (p *Client) readMessage() {
 	defer func() {
 		p.session.unregisterCh <- p
-		sendCloseMessage(p.conn)
+		sendCloseMessage(p.conn, "The session closed the message channel")
 		p.conn.Close()
 	}()
 
@@ -51,7 +51,7 @@ func (p *Client) writeMessage() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		sendCloseMessage(p.conn)
+		sendCloseMessage(p.conn, "The session closed the message channel")
 		p.conn.Close()
 	}()
 	for {
@@ -63,7 +63,7 @@ func (p *Client) writeMessage() {
 					Message: "The session closed the message channel",
 				}); err != nil {
 					slog.Error("sending JSON", "err", err)
-					sendCloseMessage(p.conn)
+					sendCloseMessage(p.conn, "The session closed the message channel")
 				}
 			}
 
@@ -118,7 +118,7 @@ func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 		}); err != nil {
 			slog.Error("sending JSON", "err", err)
 		}
-		sendCloseMessage(conn)
+		sendCloseMessage(conn, "bad request")
 		return
 	}
 
@@ -134,7 +134,7 @@ func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 		}); err != nil {
 			slog.Error("sending JSON", "err", err)
 		}
-		sendCloseMessage(conn)
+		sendCloseMessage(conn, "not found")
 		return
 	}
 	client := newClient(userID, conn, session)

@@ -63,6 +63,12 @@ func (s *Server) createGameSession(sessionID uuid.UUID) {
 }
 
 func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
+	userID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Bad request", err)
+		return
+	}
+
 	const timeout = 5 * time.Second
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
@@ -72,48 +78,31 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := uuid.Parse(r.PathValue("id"))
-	if err != nil {
-		slog.Error("parsing userID", "err", err)
-		if err := conn.WriteJSON(api.QueueMessage{
-			Message: "not_found",
-		}); err != nil {
-			slog.Error("Sending JSON", "err", err)
-		}
-		sendCloseMessage(conn)
-		return
-	}
-
 	replyCh := make(chan matchInfo)
 	s.waitingQueue <- waiting{userID: userID, replyCh: replyCh}
-
 	select {
 	case info := <-replyCh:
 		err := conn.WriteJSON(
 			api.QueueMessage{
 				Message: api.QueueMessageMatchSuccess,
-				Data: api.QueueMessageData{
+				Data: &api.QueueMessageData{
 					Opponent: info.opponent,
 				},
 			})
 		if err != nil {
-			slog.Error("sending JSON", "err", err)
-			sendCloseMessage(conn)
-			conn.Close()
+			sendCloseWithError(conn, "couldn't send JSON", err)
+			return
 		}
-		return
 	case <-time.After(timeout):
 		s.removeQueue <- userID
 		close(replyCh)
-		slog.Info("Can not find other player", "userID", userID)
 		err := conn.WriteJSON(
 			api.QueueMessage{Message: api.QueueMessageMatchFailed},
 		)
 		if err != nil {
-			slog.Error("sending JSON", "err", err)
+			sendCloseWithError(conn, "couldn't send JSON", err)
+			return
 		}
-		sendCloseMessage(conn)
-		conn.Close()
-		return
+		sendCloseMessage(conn, "match failed")
 	}
 }

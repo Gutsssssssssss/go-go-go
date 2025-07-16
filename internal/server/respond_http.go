@@ -8,7 +8,7 @@ import (
 
 func respondWithError(w http.ResponseWriter, code int, msg string, err error) {
 	if err != nil {
-		slog.Error("Error", "err", err)
+		slog.Error("respondWithError", "err", err)
 	}
 	if code > 499 {
 		slog.Warn("Responding with 5XX", "msg", msg)

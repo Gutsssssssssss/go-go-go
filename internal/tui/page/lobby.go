@@ -98,15 +98,14 @@ func (p *lobbyPage) startWaiting() {
 		p.status = lobbyEnteringGame
 	}()
 
-	ticker := time.NewTicker(time.Second)
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
 				p.findingSeconds--
 			case <-ctx.Done():
-				p.status = lobbyNotFoundPlayer
-				ticker.Stop()
 				return
 			}
 		}
