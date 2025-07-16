@@ -15,10 +15,10 @@ type waiting struct {
 	replyCh chan matchInfo
 }
 
+// matchInfo is used to send match info to the user
+// right now, it's just a pair of userID
 type matchInfo struct {
-	user1     uuid.UUID
-	user2     uuid.UUID
-	sessionID uuid.UUID
+	opponent uuid.UUID
 }
 
 func (s *Server) ListenMatchWaiting() {
@@ -37,14 +37,13 @@ func (s *Server) ListenMatchWaiting() {
 					break
 				}
 			}
-			sessionID := uuid.New() // random uuid
-			info := matchInfo{user1: w1.userID, user2: w2.userID, sessionID: sessionID}
-			w1.replyCh <- info
-			w2.replyCh <- info
+			// sessionID := uuid.New() // random uuid
+			w1.replyCh <- matchInfo{opponent: w2.userID}
+			w2.replyCh <- matchInfo{opponent: w1.userID}
 			// clear waiting user
 			delete(buf, w2.userID)
 			slog.Info("Matched!", "user1", w1.userID, "user2", w2.userID)
-			s.createGameSession(sessionID)
+			// s.createGameSession(sessionID)
 		case userID := <-s.removeQueue:
 			if _, ok := buf[userID]; ok {
 				delete(buf, userID)
@@ -64,8 +63,6 @@ func (s *Server) createGameSession(sessionID uuid.UUID) {
 }
 
 func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
-	// TODO: check if user's waiting is exist
-	// if user stop waiting, remove user from waiting queue
 	const timeout = 5 * time.Second
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
@@ -92,7 +89,13 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 
 	select {
 	case info := <-replyCh:
-		err := conn.WriteJSON(api.QueueMessage{ Message:"match_success"})
+		err := conn.WriteJSON(
+			api.QueueMessage{
+				Message: api.QueueMessageMatchSuccess,
+				Data: api.QueueMessageData{
+					Opponent: info.opponent,
+				},
+			})
 		if err != nil {
 			slog.Error("sending JSON", "err", err)
 			sendCloseMessage(conn)
@@ -102,8 +105,10 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 	case <-time.After(timeout):
 		s.removeQueue <- userID
 		close(replyCh)
-		slog.Debug("Can not find other player", "userID", userID)
-		err := conn.WriteJSON(api.QueueMessage{ Message:"match_failed"})
+		slog.Info("Can not find other player", "userID", userID)
+		err := conn.WriteJSON(
+			api.QueueMessage{Message: api.QueueMessageMatchFailed},
+		)
 		if err != nil {
 			slog.Error("sending JSON", "err", err)
 		}

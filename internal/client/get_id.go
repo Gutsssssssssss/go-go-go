@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/yanmoyy/go-go-go/internal/api"
 )
 
 func (c *Client) GetID() (uuid.UUID, error) {
@@ -24,11 +25,8 @@ func (c *Client) GetID() (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("read body: %w", err)
 	}
-	type response struct {
-		ID uuid.UUID `json:"id"`
-	}
-	var resp response
-	err = json.Unmarshal(data, &res)
+	var resp api.GetIDResponse
+	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("unmarshal: %w", err)
 	}

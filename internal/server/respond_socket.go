@@ -1,6 +1,10 @@
 package server
 
-import "github.com/gorilla/websocket"
+import (
+	"log/slog"
+
+	"github.com/gorilla/websocket"
+)
 
 func sendCloseMessage(conn *websocket.Conn) {
 	err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
@@ -9,3 +13,4 @@ func sendCloseMessage(conn *websocket.Conn) {
 	}
 	conn.Close()
 }
+

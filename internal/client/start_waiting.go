@@ -57,11 +57,13 @@ func (c *Client) StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, err
 		case err := <-errCh:
 			return uuid.Nil, fmt.Errorf("read: %w", err)
 		case msg := <-msgCh:
-			if msg.Message == "match_success" {
-				return msg.SessionID, nil
-			}
-			if msg.Message == "match_fail" {
+			switch msg.Message {
+			case api.QueueMessageMatchSuccess:
+				return msg.Data.Opponent, nil
+			case api.QueueMessageMatchFailed:
 				return uuid.Nil, nil
+			default:
+				return uuid.Nil, fmt.Errorf("unknown message: %s", msg.Message)
 			}
 		case <-ctx.Done():
 			return uuid.Nil, nil

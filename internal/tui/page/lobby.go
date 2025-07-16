@@ -39,8 +39,8 @@ type lobbyPage struct {
 	selected int
 	client   *client.Client
 	data     struct {
-		id     uuid.UUID
-		gameID uuid.UUID
+		id         uuid.UUID
+		opponentID uuid.UUID
 	}
 	status         lobbyStatus
 	findingSeconds int
@@ -82,19 +82,19 @@ func (p *lobbyPage) startWaiting() {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	go func() {
 		defer cancel()
-		gameID, err := p.client.StartWaiting(p.data.id, ctx)
+		opponentID, err := p.client.StartWaiting(p.data.id, ctx)
 		if err != nil {
-			slog.Debug("Connection Error", "err", err)
+			slog.Error("Connection Error", "err", err)
 			p.status = lobbyConnectionErr
 			return
 		}
-		if gameID == uuid.Nil {
+		if opponentID == uuid.Nil {
 			slog.Info("Not Found Player")
 			p.status = lobbyNotFoundPlayer
 			return
 		}
-		slog.Info("Found Player", "gameID", gameID)
-		p.data.gameID = gameID
+		slog.Info("Found Player", "id", opponentID)
+		p.data.opponentID = opponentID
 		p.status = lobbyEnteringGame
 	}()
 

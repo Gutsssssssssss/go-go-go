@@ -4,14 +4,11 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/yanmoyy/go-go-go/internal/api"
 )
 
 // create userID and return it
 func (s *Server) HandleGetID(w http.ResponseWriter, r *http.Request) {
-	type response struct {
-		ID uuid.UUID `json:"id"`
-	}
-
 	id := uuid.New()
-	respondWithJSON(w, 200, response{ID: id})
+	respondWithJSON(w, 200, api.GetIDResponse{ID: id})
 }

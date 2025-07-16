@@ -38,8 +38,8 @@ func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
 	}
 	switch r.Level {
 	case slog.LevelDebug:
-		level = white.Color(level)
-		msg = white.Color(msg)
+		level = gray.Color(level)
+		msg = gray.Color(msg)
 	case slog.LevelInfo:
 		level = cyan.Color(level)
 		msg = cyan.Color(msg)

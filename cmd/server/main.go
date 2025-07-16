@@ -10,6 +10,7 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/database"
 	"github.com/yanmoyy/go-go-go/internal/logging"
 	"github.com/yanmoyy/go-go-go/internal/server"
+	"github.com/yanmoyy/go-go-go/internal/server/middleware"
 )
 
 func main() {
@@ -19,11 +20,11 @@ func main() {
 	s := server.NewServer(db)
 	go s.ListenMatchWaiting()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/ws/waiting/{id}", s.HandleWaiting)
-	mux.HandleFunc("/ws/game", s.HandleGame)
-	mux.HandleFunc("GET /api/user/id", s.HandleGetID)
+	mux.HandleFunc("GET /api/user/id", middleware.Log(s.HandleGetID))
+	mux.HandleFunc("/ws/waiting/{id}", middleware.Log(s.HandleWaiting))
+	mux.HandleFunc("/ws/game", middleware.Log(s.HandleGame))
 
-	mux.HandleFunc("POST /api/game", s.HandleCreateGameRecord)
+	mux.HandleFunc("POST /api/game", middleware.Log(s.HandleCreateGameRecord))
 
 	srv := &http.Server{
 		Addr:        ":" + port,

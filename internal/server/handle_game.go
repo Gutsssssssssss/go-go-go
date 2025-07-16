@@ -138,7 +138,7 @@ func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := newClient(userID, conn, session)
-	session.registerCh <-client 
+	session.registerCh <- client
 
 	go client.writeMessage()
 	go client.readMessage()
