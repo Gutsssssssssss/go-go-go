@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
@@ -18,7 +19,8 @@ type waiting struct {
 // matchInfo is used to send match info to the user
 // right now, it's just a pair of userID
 type matchInfo struct {
-	opponent uuid.UUID
+	sessionID uuid.UUID
+	opponent  uuid.UUID
 }
 
 func (s *Server) ListenMatchWaiting() {
@@ -37,18 +39,16 @@ func (s *Server) ListenMatchWaiting() {
 					break
 				}
 			}
-			// sessionID := uuid.New() // random uuid
-			w1.replyCh <- matchInfo{opponent: w2.userID}
-			w2.replyCh <- matchInfo{opponent: w1.userID}
+			sessionID := uuid.New() // random uuid
+			w1.replyCh <- matchInfo{opponent: w2.userID, sessionID: sessionID}
+			w2.replyCh <- matchInfo{opponent: w1.userID, sessionID: sessionID}
+			s.createGameSession(sessionID)
 			// clear waiting user
 			delete(buf, w2.userID)
 			slog.Info("Matched!", "user1", w1.userID, "user2", w2.userID)
-			// s.createGameSession(sessionID)
 		case userID := <-s.removeQueue:
-			if _, ok := buf[userID]; ok {
-				delete(buf, userID)
-				slog.Info("Removed user from waiting queue", "userID", userID)
-			}
+			delete(buf, userID)
+			slog.Info("Removed user from waiting queue", "userID", userID)
 		}
 	}
 }
@@ -60,6 +60,11 @@ func (s *Server) createGameSession(sessionID uuid.UUID) {
 	s.sessions[sessionID] = session
 	slog.Debug("Start listening the game session", "sessionID", sessionID)
 	go session.ListenSession()
+}
+
+func (s *Server) registerClientToSession(sessionID, clientID uuid.UUID, conn *websocket.Conn) {
+	client := newClient(clientID, conn, s.sessions[sessionID])
+	s.sessions[sessionID].registerCh <- client
 }
 
 func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +98,8 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 			sendCloseWithError(conn, "couldn't send JSON", err)
 			return
 		}
+		s.registerClientToSession(info.sessionID, userID, conn)
+
 	case <-time.After(timeout):
 		s.removeQueue <- userID
 		close(replyCh)

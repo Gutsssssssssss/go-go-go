@@ -1,6 +1,8 @@
 package server
 
 import (
+	"log/slog"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/game"
@@ -45,8 +47,10 @@ func (s *Session) ListenSession() {
 		select {
 		case client := <-s.registerCh:
 			s.clients[client] = true
+			slog.Info("Session: Registered", "clientID", client.id)
 		case client := <-s.unregisterCh:
 			delete(s.clients, client)
+			slog.Info("Session: Unregistered", "clientID", client.id)
 		case message := <-s.broadcastCh:
 			for client := range s.clients {
 				select {
