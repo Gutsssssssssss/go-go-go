@@ -8,26 +8,34 @@ import (
 
 type Session struct {
 	game         *game.Game
-	players      map[*Player]bool
-	registerCh   chan *Player
-	unregisterCh chan *Player
+	clients      map[*Client]bool
+	registerCh   chan *Client
+	unregisterCh chan *Client
 	broadcastCh  chan []byte
 }
 
-type Player struct {
+type Client struct {
 	id        uuid.UUID
 	conn      *websocket.Conn
 	session   *Session
 	messageCh chan []byte
 }
 
-func NewSession() *Session {
-	g := game.NewGame()
+func newClient(id uuid.UUID, conn *websocket.Conn, session *Session) *Client {
+	return &Client{
+		id:        id,
+		conn:      conn,
+		session:   session,
+		messageCh: make(chan []byte, 256),
+	}
+}
+
+func newGameSession(game *game.Game) *Session {
 	return &Session{
-		game:         g,
-		players:      make(map[*Player]bool),
-		registerCh:   make(chan *Player),
-		unregisterCh: make(chan *Player),
+		game:         game,
+		clients:      make(map[*Client]bool),
+		registerCh:   make(chan *Client),
+		unregisterCh: make(chan *Client),
 		broadcastCh:  make(chan []byte),
 	}
 }
@@ -35,17 +43,17 @@ func NewSession() *Session {
 func (s *Session) ListenSession() {
 	for {
 		select {
-		case player := <-s.registerCh:
-			s.players[player] = true
-		case player := <-s.unregisterCh:
-			delete(s.players, player)
+		case client := <-s.registerCh:
+			s.clients[client] = true
+		case client := <-s.unregisterCh:
+			delete(s.clients, client)
 		case message := <-s.broadcastCh:
-			for player := range s.players {
+			for client := range s.clients {
 				select {
-				case player.messageCh <- message:
-				default:
-					close(player.messageCh)
-					delete(s.players, player)
+				case client.messageCh <- message:
+				default: // message channel is full
+					close(client.messageCh)
+					delete(s.clients, client)
 				}
 			}
 		}

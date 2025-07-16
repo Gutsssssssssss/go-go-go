@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"log"
+
 	"log/slog"
 	"net/http"
 	"time"
@@ -24,7 +24,7 @@ type sessionInfo struct {
 	UserID uuid.UUID `json:"user_id"`
 }
 
-func (p *Player) readMessage() {
+func (p *Client) readMessage() {
 	defer func() {
 		p.session.unregisterCh <- p
 		sendCloseMessage(p.conn)
@@ -47,7 +47,7 @@ func (p *Player) readMessage() {
 	}
 }
 
-func (p *Player) writeMessage() {
+func (p *Client) writeMessage() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -116,7 +116,6 @@ func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 		if err := conn.WriteJSON(api.QueueMessage{
 			Message: "bad_request",
 		}); err != nil {
-			log.Printf("Error sending JSON: %s\n", err)
 			slog.Error("sending JSON", "err", err)
 		}
 		sendCloseMessage(conn)
@@ -125,11 +124,11 @@ func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 
 	gameID := info.GameID
 	userID := info.UserID
-	slog.Debug("Entered a game", "userID", userID, "gameID", gameID)
+	slog.Debug("Entered the game", "userID", userID, "gameID", gameID)
 
 	session := s.sessions[gameID]
 	if session == nil {
-		slog.Debug("could not fint the session", "gameID", gameID)
+		slog.Debug("could not find the session", "gameID", gameID)
 		if err := conn.WriteJSON(api.QueueMessage{
 			Message: "not_found",
 		}); err != nil {
@@ -138,9 +137,9 @@ func (s *Server) HandleGame(w http.ResponseWriter, r *http.Request) {
 		sendCloseMessage(conn)
 		return
 	}
-	player := &Player{id: userID, conn: conn, session: session, messageCh: make(chan []byte)}
-	session.registerCh <- player
+	client := newClient(userID, conn, session)
+	session.registerCh <-client 
 
-	go player.writeMessage()
-	go player.readMessage()
+	go client.writeMessage()
+	go client.readMessage()
 }

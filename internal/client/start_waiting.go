@@ -58,7 +58,7 @@ func (c *Client) StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, err
 			return uuid.Nil, fmt.Errorf("read: %w", err)
 		case msg := <-msgCh:
 			if msg.Message == "match_success" {
-				return msg.GameID, nil
+				return msg.SessionID, nil
 			}
 			if msg.Message == "match_fail" {
 				return uuid.Nil, nil
