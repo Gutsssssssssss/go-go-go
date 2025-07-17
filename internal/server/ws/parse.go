@@ -1,19 +1,28 @@
 package ws
 
+import "fmt"
+
 type MessageType int
 
 const (
 	GameEvent MessageType = iota
-	PlayerEvent
 	ChatEvent
 )
 
-type Message struct {
-	Type MessageType
-	Data []byte
+// getMessageType returns the message type and length of the message which is read from the websocket connection
+func getMessageType(payload []byte) (MessageType, int, error) {
+	if len(payload) < 1 {
+		return 0, 0, fmt.Errorf("message too short")
+	}
+	switch payload[0] {
+	case 'G':
+		return GameEvent, 1, nil
+	case 'C':
+		return ChatEvent, 1, nil
+	default:
+		return 0, 0, fmt.Errorf("unknown message type")
+	}
 }
 
-// parseMessage parses a message from a client
-func parseMessage(message []byte) (Message, error) {
-	return Message{}, nil
+func parseGameEvent(data []byte) error {
 }

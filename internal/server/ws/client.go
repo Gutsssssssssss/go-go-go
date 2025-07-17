@@ -56,14 +56,14 @@ func (c *Client) ReadPump() {
 		},
 	)
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, payload, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				slog.Error("client: cannot read message", "err", err)
 			}
 			break
 		}
-		c.session.Send(message)
+		c.session.Send(message{clientID: c.id, payload: payload})
 	}
 }
 

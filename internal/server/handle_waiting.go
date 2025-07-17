@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
-	"github.com/yanmoyy/go-go-go/internal/game"
 	"github.com/yanmoyy/go-go-go/internal/server/ws"
 )
 
@@ -56,8 +55,7 @@ func (s *Server) ListenMatchWaiting() {
 
 // create game session
 func (s *Server) createGameSession(sessionID uuid.UUID) {
-	game := game.NewGame()
-	session := ws.NewGameSession(game)
+	session := ws.NewGameSession()
 	s.sessions[sessionID] = session
 	slog.Debug("Start listening the game session", "sessionID", sessionID)
 	session.Listen()

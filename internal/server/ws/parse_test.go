@@ -1,11 +1,17 @@
 package ws
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestParseMessage(t *testing.T) {
-	message := []byte("hello world")
-	_, err := parseMessage(message)
-	if err != nil {
-		t.Error("failed to parse message")
-	}
+	t.Run("get message type", func(t *testing.T) {
+		message := []byte{'G'}
+		messageType, messageLength, err := getMessageType(message)
+		require.NoError(t, err)
+		require.Equal(t, GameEvent, messageType)
+		require.Equal(t, 1, messageLength)
+	})
 }
