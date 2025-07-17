@@ -23,8 +23,6 @@ func main() {
 	mux.HandleFunc("GET /api/user/id", middleware.Log(s.HandleGetID))
 	mux.HandleFunc("/ws/waiting/{id}", middleware.Log(s.HandleWaiting))
 
-	mux.HandleFunc("POST /api/game", middleware.Log(s.HandleCreateGameRecord))
-
 	srv := &http.Server{
 		Addr:        ":" + port,
 		Handler:     mux,

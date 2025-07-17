@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 )
-
 func respondWithError(w http.ResponseWriter, code int, msg string, err error) {
 	if err != nil {
 		slog.Error(msg, "err", err)

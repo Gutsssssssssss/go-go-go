@@ -60,14 +60,14 @@ func (s *Server) createGameSession(sessionID uuid.UUID) {
 	session := ws.NewGameSession(game)
 	s.sessions[sessionID] = session
 	slog.Debug("Start listening the game session", "sessionID", sessionID)
-	go session.ListenSession()
+	session.Listen()
 }
 
 func (s *Server) registerClientToSession(sessionID, clientID uuid.UUID, conn *websocket.Conn) {
 	client := ws.NewClient(clientID, conn, s.sessions[sessionID])
 	s.sessions[sessionID].Register(client)
-	go client.WriteMessage()
-	go client.ReadMessage()
+	slog.Debug("Start listening the client", "clientID", clientID)
+	client.Listen()
 }
 
 func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {

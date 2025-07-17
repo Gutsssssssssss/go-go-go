@@ -1,7 +1,6 @@
 package ws
 
 import (
-	"bytes"
 	"log/slog"
 	"time"
 
@@ -11,9 +10,14 @@ import (
 )
 
 const (
-	writeWait  = 10 * time.Second
-	pongWait   = 60 * time.Second
-	pingPeriod = (pongWait / 9) * 10
+	// Time allowed to write a message to the peer.
+	writeWait = 10 * time.Second
+	// Time allowed to read the next pong message from the peer.
+	pongWait = 60 * time.Second
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = (pongWait * 9) / 10
+	// Maximum message size allowed from peer.
+	maxMessageSize = 512
 )
 
 type Client struct {
@@ -32,35 +36,43 @@ func NewClient(id uuid.UUID, conn *websocket.Conn, session *Session) *Client {
 	}
 }
 
-func (c *Client) ReadMessage() {
-	defer func() {
-		c.session.unregisterCh <- c
-		SendCloseMessage(c.conn, "The session closed the message channel")
-		c.conn.Close()
-	}()
+func (c *Client) Listen() {
+	go c.ReadPump()
+	go c.WritePump()
+}
 
-	c.conn.SetReadLimit(512)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+// ReadPump reads messages from the websocket connection
+func (c *Client) ReadPump() {
+	defer func() {
+		c.session.Unregister(c)
+		SendCloseMessage(c.conn, "client read finished")
+	}()
+	c.conn.SetReadLimit(maxMessageSize)
+	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(
+		func(string) error {
+			_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
+			return nil
+		},
+	)
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				slog.Error("could not read the message", "err", err)
+				slog.Error("client: cannot read message", "err", err)
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.ReplaceAll(message, []byte{'\n'}, []byte{' '}))
-		c.session.broadcastCh <- message
+		c.session.Send(message)
 	}
 }
 
-func (c *Client) WriteMessage() {
+// WritePump writes messages to the websocket connection
+func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
 		SendCloseMessage(c.conn, "The session closed the message channel")
-		c.conn.Close()
 	}()
 	for {
 		select {

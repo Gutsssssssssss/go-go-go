@@ -17,7 +17,7 @@ func SendCloseWithError(conn *websocket.Conn, msg string, err error) {
 	if err != nil {
 		slog.Error("sending close message", "err", err)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
 
 func SendCloseMessage(conn *websocket.Conn, msg string) {
@@ -28,5 +28,5 @@ func SendCloseMessage(conn *websocket.Conn, msg string) {
 	if err != nil {
 		slog.Error("sending close message", "err", err)
 	}
-	conn.Close()
+	_ = conn.Close()
 }
