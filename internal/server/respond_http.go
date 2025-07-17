@@ -8,10 +8,10 @@ import (
 
 func respondWithError(w http.ResponseWriter, code int, msg string, err error) {
 	if err != nil {
-		slog.Error("respondWithError", "err", err)
+		slog.Error(msg, "err", err)
 	}
 	if code > 499 {
-		slog.Warn("Responding with 5XX", "msg", msg)
+		slog.Warn("Responding with 5XX", "code", code)
 	}
 	type errorResponse struct {
 		Error string `json:"error"`

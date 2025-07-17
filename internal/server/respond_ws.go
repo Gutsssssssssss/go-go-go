@@ -8,7 +8,7 @@ import (
 
 func sendCloseWithError(conn *websocket.Conn, msg string, err error) {
 	if err != nil {
-		slog.Error("sendCloseMessage", "err", err)
+		slog.Error(msg, "err", err)
 	}
 	err = conn.WriteMessage(
 		websocket.CloseMessage,

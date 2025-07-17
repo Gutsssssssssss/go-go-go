@@ -78,8 +78,7 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		slog.Error("Websocket upgrade failed", "err", err)
-		respondWithError(w, 400, "Bad request", nil)
+		respondWithError(w, http.StatusBadRequest, "Bad request", err)
 		return
 	}
 
