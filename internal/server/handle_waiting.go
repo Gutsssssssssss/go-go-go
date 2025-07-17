@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
 	"github.com/yanmoyy/go-go-go/internal/game"
+	"github.com/yanmoyy/go-go-go/internal/server/ws"
 )
 
 type waiting struct {
@@ -56,15 +57,17 @@ func (s *Server) ListenMatchWaiting() {
 // create game session
 func (s *Server) createGameSession(sessionID uuid.UUID) {
 	game := game.NewGame()
-	session := newGameSession(game)
+	session := ws.NewGameSession(game)
 	s.sessions[sessionID] = session
 	slog.Debug("Start listening the game session", "sessionID", sessionID)
 	go session.ListenSession()
 }
 
 func (s *Server) registerClientToSession(sessionID, clientID uuid.UUID, conn *websocket.Conn) {
-	client := newClient(clientID, conn, s.sessions[sessionID])
-	s.sessions[sessionID].registerCh <- client
+	client := ws.NewClient(clientID, conn, s.sessions[sessionID])
+	s.sessions[sessionID].Register(client)
+	go client.WriteMessage()
+	go client.ReadMessage()
 }
 
 func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +97,7 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 				},
 			})
 		if err != nil {
-			sendCloseWithError(conn, "couldn't send JSON", err)
+			ws.SendCloseWithError(conn, "couldn't send JSON", err)
 			return
 		}
 		s.registerClientToSession(info.sessionID, userID, conn)
@@ -106,9 +109,9 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 			api.QueueMessage{Message: api.QueueMessageMatchFailed},
 		)
 		if err != nil {
-			sendCloseWithError(conn, "couldn't send JSON", err)
+			ws.SendCloseWithError(conn, "couldn't send JSON", err)
 			return
 		}
-		sendCloseMessage(conn, "match failed")
+		ws.SendCloseMessage(conn, "match failed")
 	}
 }

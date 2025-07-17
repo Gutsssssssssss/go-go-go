@@ -1,10 +1,8 @@
-package server
+package ws
 
 import (
 	"log/slog"
 
-	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
@@ -16,23 +14,7 @@ type Session struct {
 	broadcastCh  chan []byte
 }
 
-type Client struct {
-	id        uuid.UUID
-	conn      *websocket.Conn
-	session   *Session
-	messageCh chan []byte
-}
-
-func newClient(id uuid.UUID, conn *websocket.Conn, session *Session) *Client {
-	return &Client{
-		id:        id,
-		conn:      conn,
-		session:   session,
-		messageCh: make(chan []byte, 256),
-	}
-}
-
-func newGameSession(game *game.Game) *Session {
+func NewGameSession(game *game.Game) *Session {
 	return &Session{
 		game:         game,
 		clients:      make(map[*Client]bool),
@@ -41,7 +23,6 @@ func newGameSession(game *game.Game) *Session {
 		broadcastCh:  make(chan []byte),
 	}
 }
-
 func (s *Session) ListenSession() {
 	for {
 		select {
@@ -62,4 +43,8 @@ func (s *Session) ListenSession() {
 			}
 		}
 	}
+}
+
+func (s *Session) Register(client *Client) {
+	s.clients[client] = true
 }

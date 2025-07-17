@@ -23,7 +23,7 @@ func (s *Server) HandleCreateGameRecord(w http.ResponseWriter, r *http.Request) 
 
 	session := s.sessions[userInfo.GameID]
 
-	if err := s.db.SaveGameRecord(userInfo.Nickname, session.game.Record); err != nil {
+	if err := s.db.SaveGameRecord(userInfo.Nickname, session.Game.Record); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't save the game record", err)
 		return
 	}

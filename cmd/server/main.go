@@ -22,7 +22,6 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/user/id", middleware.Log(s.HandleGetID))
 	mux.HandleFunc("/ws/waiting/{id}", middleware.Log(s.HandleWaiting))
-	mux.HandleFunc("/ws/game", middleware.Log(s.HandleGame))
 
 	mux.HandleFunc("POST /api/game", middleware.Log(s.HandleCreateGameRecord))
 

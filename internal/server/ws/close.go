@@ -1,4 +1,4 @@
-package server
+package ws
 
 import (
 	"log/slog"
@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func sendCloseWithError(conn *websocket.Conn, msg string, err error) {
+func SendCloseWithError(conn *websocket.Conn, msg string, err error) {
 	if err != nil {
 		slog.Error(msg, "err", err)
 	}
@@ -20,7 +20,7 @@ func sendCloseWithError(conn *websocket.Conn, msg string, err error) {
 	conn.Close()
 }
 
-func sendCloseMessage(conn *websocket.Conn, msg string) {
+func SendCloseMessage(conn *websocket.Conn, msg string) {
 	err := conn.WriteMessage(
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, msg),
