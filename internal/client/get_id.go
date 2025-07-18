@@ -20,7 +20,8 @@ func (c *Client) GetID() (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("do request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
+
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("read body: %w", err)
@@ -29,6 +30,10 @@ func (c *Client) GetID() (uuid.UUID, error) {
 	err = json.Unmarshal(data, &resp)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("unmarshal: %w", err)
+	}
+
+	if resp.ID == uuid.Nil {
+		return uuid.Nil, fmt.Errorf("nil uuid received: %w", err)
 	}
 	return resp.ID, nil
 }

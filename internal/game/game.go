@@ -22,16 +22,27 @@ type Game struct {
 }
 
 func NewGame() *Game {
-	return &Game{}
+	return &Game{
+		record:  []Event{},
+		players: []player{},
+		turn:    0,
+		idMap:   make(map[string]int),
+		stones:  []Stone{},
+	}
 }
 
 func (g *Game) AddPlayer(key string) (needStart bool, err error) {
 	if len(g.players) >= maxPlayers {
 		return false, fmt.Errorf("game is full (max players: %d)", maxPlayers)
 	}
-	id := len(g.players) + 1
+	// id is an index of g.players slice
+	id := len(g.players)
 	g.idMap[key] = id
-	g.players[id] = newPlayer(id, white)
+	stone := white
+	if len(g.players) == 1 {
+		stone = black
+	}
+	g.players = append(g.players, newPlayer(id, stone))
 	if len(g.players) == 2 {
 		return true, nil
 	}

@@ -31,3 +31,9 @@ type PagePushMsg struct {
 }
 
 type PagePopMsg struct{}
+
+func cmd(msg tea.Msg) tea.Cmd {
+	return func() tea.Msg {
+		return msg
+	}
+}

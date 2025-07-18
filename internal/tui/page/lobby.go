@@ -28,6 +28,7 @@ const (
 	lobbyWaiting
 	lobbyNotFoundPlayer
 	lobbyEnteringGame
+	lobbyFailedGetID
 	lobbyConnectionErr
 )
 
@@ -65,20 +66,20 @@ func NewLobbyPage() tea.Model {
 func (p *lobbyPage) fetchUserID() {
 	id, err := p.client.GetID()
 	if err != nil {
-		p.status = lobbyConnectionErr
+		p.status = lobbyFailedGetID
+		return
 	}
 	p.data.id = id
 }
 
 func (p *lobbyPage) startWaiting() {
-	if p.status == lobbyWaiting {
+	if p.status == lobbyWaiting || p.data.id == uuid.Nil {
 		return
 	}
 	const timeout = time.Second * 10
 
 	p.status = lobbyWaiting
 	p.findingSeconds = int(timeout.Seconds())
-
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	go func() {
 		defer cancel()
@@ -138,9 +139,7 @@ func (p *lobbyPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, keys.Quit()):
-			return p, func() tea.Msg {
-				return PagePopMsg{}
-			}
+			return p, cmd(PagePopMsg{})
 		case key.Matches(msg, keys.Up()):
 			if p.selected > 0 {
 				p.selected--
@@ -160,15 +159,19 @@ func (p *lobbyPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case withBot:
 				p.showMessage("Play with Bot")
 			case quit:
-				return p, func() tea.Msg {
-					return PagePopMsg{}
-				}
+				return p, cmd(PagePopMsg{})
 			}
 		}
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		p.spinner, cmd = p.spinner.Update(msg)
 		return p, cmd
+	}
+
+	if p.status == lobbyEnteringGame {
+		return p, tea.Batch(
+			cmd(PagePushMsg{ID: GamePage}),
+		)
 	}
 	return p, nil
 }
@@ -286,6 +289,8 @@ func (p *lobbyPage) statusView() string {
 		return "Found Player! Entering Game..."
 	case lobbyNotFoundPlayer:
 		return "Not Found Player"
+	case lobbyFailedGetID:
+		return "Connection Error (start again)"
 	case lobbyConnectionErr:
 		return "Connection Error"
 	}

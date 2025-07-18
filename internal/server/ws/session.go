@@ -52,7 +52,7 @@ func (s *Session) Listen() {
 				}
 				if needStart {
 					evt := s.game.StartGame()
-					s.BroadcastWithJSON(evt)
+					s.broadcastWithJSON(evt)
 				}
 			case client := <-s.unregisterCh:
 				delete(s.clients, client)
@@ -79,7 +79,7 @@ func (s *Session) Send(msg message) {
 	s.messageCh <- msg
 }
 
-func (s *Session) BroadcastWithJSON(data any) {
+func (s *Session) broadcastWithJSON(data any) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		slog.Error("failed to marshal data", "err", err)

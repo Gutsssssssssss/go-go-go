@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/yanmoyy/go-go-go/internal/api"
 )
 
 const (
@@ -77,34 +76,36 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case message, ok := <-c.messageCh:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				if err := c.conn.WriteJSON(api.QueueMessage{
-					Message: "The session closed the message channel",
-				}); err != nil {
-					slog.Error("sending JSON", "err", err)
-					SendCloseMessage(c.conn, "The session closed the message channel")
+				err := c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err != nil {
+					SendCloseWithError(c.conn, "The session closed the message channel", err)
 				}
 			}
-
 			// we have to decide the message form
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				slog.Error("NextWriter", "err", err)
 				return
 			}
-			w.Write(message)
+			_, err = w.Write(message)
+			if err != nil {
+				slog.Error("w.Write", "err", err)
+				return
+			}
 
 			n := len(c.messageCh)
 			for range n {
-				w.Write([]byte{'\n'})
-				w.Write(<-c.messageCh)
+				_, _ = w.Write([]byte{'\n'})
+				_, _ = w.Write(<-c.messageCh)
 			}
 
 			if err := w.Close(); err != nil {
 				return
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

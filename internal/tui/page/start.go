@@ -61,9 +61,7 @@ func (p *startPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Enter()):
 			switch p.selected {
 			case 0: // Start Game
-				return p, func() tea.Msg {
-					return PagePushMsg{ID: LobbyPage}
-				}
+				return p, cmd(PagePushMsg{ID: LobbyPage})
 			case 1: // Options
 				return p, nil
 			case 2: // Help

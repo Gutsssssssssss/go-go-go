@@ -24,6 +24,7 @@ func New() *appModel {
 		pages: map[page.PageID]tea.Model{
 			page.StartPage: page.NewStartPage(),
 			page.LobbyPage: page.NewLobbyPage(),
+			page.GamePage:  page.NewGamePage(),
 		},
 	}
 }
