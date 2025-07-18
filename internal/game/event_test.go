@@ -7,14 +7,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGameEventToJSON(t *testing.T) {
+func TestGameEventUnmarshal(t *testing.T) {
 	t.Run("game start", func(t *testing.T) {
-		evt := GameEvent{Type: GameStart, Data: StartGameData{Turn: 0}}
-		jsonData, err := evt.ToJSON()
+		evt := Event{
+			Type: StartGameEvent,
+			Data: StartGameData{Turn: 0},
+		}
+		jsonData, err := json.Marshal(evt)
 		require.NoError(t, err)
-		var evt2 GameEvent
+
+		var evt2 Event
 		err = json.Unmarshal(jsonData, &evt2)
 		require.NoError(t, err)
 		require.Equal(t, evt, evt2)
+
+		data, ok := evt2.Data.(StartGameData)
+		require.True(t, ok)
+		require.Equal(t, 0, data.Turn)
 	})
 }

@@ -2,54 +2,63 @@ package game
 
 import (
 	"encoding/json"
-	"time"
+	"fmt"
 )
 
 type EventType int
 
 const (
-	GameStart EventType = iota
-	Shoot
-	StoneAnimation
-	GameOver
+	StartGameEvent EventType = iota
+	ShootEvent
+	StoneAnimationEvent
+	GameOverEvent
 )
 
-type GameEvent struct {
-	Type EventType
-	Data any
+type Event struct {
+	Type EventType `json:"type"`
+	Data any       `json:"data"`
 }
 
-type StartGameData struct {
-	Turn int
-}
-type Vector2 struct {
-	X int
-	Y int
-}
-
-type ShootData struct {
-	PlayerID  int
-	StoneID   int
-	Power     int
-	Direction Vector2
-}
-
-type StoneAnimationData struct {
-	StoneID   int
-	StartTime time.Time
-	EndTime   time.Time
-	Speed     float64
-	Direction Vector2
-}
-
-type GameOverData struct {
-	WinnerID int
-}
-
-func (e GameEvent) ToJSON() ([]byte, error) {
-	b, err := json.Marshal(e)
-	if err != nil {
-		return nil, err
+func (e *Event) UnmarshalJSON(data []byte) error {
+	type tempEvent struct {
+		Type EventType       `json:"type"`
+		Data json.RawMessage `json:"data"`
 	}
-	return b, nil
+
+	var temp tempEvent
+	err := json.Unmarshal(data, &temp)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal event: %w", err)
+	}
+
+	d, err := unmarshalData(temp.Type, temp.Data)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal data: %w", err)
+	}
+
+	e.Type = temp.Type
+	e.Data = d
+	return nil
+}
+
+func unmarshalData(t EventType, data []byte) (any, error) {
+	switch t {
+	case StartGameEvent:
+		var d StartGameData
+		err := json.Unmarshal(data, &d)
+		return d, err
+	case ShootEvent:
+		var d ShootData
+		err := json.Unmarshal(data, &d)
+		return d, err
+	case StoneAnimationEvent:
+		var d StoneAnimationData
+		err := json.Unmarshal(data, &d)
+		return d, err
+	case GameOverEvent:
+		var d GameOverData
+		err := json.Unmarshal(data, &d)
+		return d, err
+	}
+	return nil, fmt.Errorf("unknown event type: %d", t)
 }

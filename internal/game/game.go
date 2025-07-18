@@ -14,7 +14,7 @@ const (
 )
 
 type Game struct {
-	record  []GameEvent // record of game events. used to replay the game
+	record  []Event
 	players []player
 	turn    int
 	idMap   map[string]int // key: userID, value: playerID (to hide userID)
@@ -38,10 +38,10 @@ func (g *Game) AddPlayer(key string) (needStart bool, err error) {
 	return false, nil
 }
 
-func (g *Game) StartGame() GameEvent {
+func (g *Game) StartGame() Event {
 	g.placeStones()
 	g.turn = 0
-	evt := GameEvent{Type: GameStart, Data: StartGameData{Turn: g.turn}}
+	evt := Event{Type: StartGameEvent, Data: StartGameData{Turn: g.turn}}
 	g.record = append(g.record, evt)
 	return evt
 }

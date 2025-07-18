@@ -25,4 +25,5 @@ func getMessageType(payload []byte) (MessageType, int, error) {
 }
 
 func parseGameEvent(data []byte) error {
+	return nil
 }
