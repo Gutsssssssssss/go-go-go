@@ -30,6 +30,10 @@ type PagePushMsg struct {
 	ID PageID
 }
 
+type PageSwitchMsg struct {
+	ID PageID
+}
+
 type PagePopMsg struct{}
 
 func cmd(msg tea.Msg) tea.Cmd {

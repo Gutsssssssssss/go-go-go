@@ -72,45 +72,54 @@ func (p *lobbyPage) fetchUserID() {
 	p.data.id = id
 }
 
-func (p *lobbyPage) startWaiting() {
+type opponentFoundMsg struct {
+	opponentID uuid.UUID
+}
+
+type delayedGamePageMsg struct{}
+
+func (p *lobbyPage) startWaiting() tea.Cmd {
 	if p.status == lobbyWaiting || p.data.id == uuid.Nil {
-		return
+		return nil
 	}
 	const timeout = time.Second * 10
 
 	p.status = lobbyWaiting
 	p.findingSeconds = int(timeout.Seconds())
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	go func() {
-		defer cancel()
-		opponentID, err := p.client.StartWaiting(p.data.id, ctx)
-		if err != nil {
-			slog.Error("Connection Error", "err", err)
-			p.status = lobbyConnectionErr
-			return
-		}
-		if opponentID == uuid.Nil {
-			slog.Info("Not Found Player")
-			p.status = lobbyNotFoundPlayer
-			return
-		}
-		slog.Info("Found Player", "id", opponentID)
-		p.data.opponentID = opponentID
-		p.status = lobbyEnteringGame
-	}()
 
-	go func() {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				p.findingSeconds--
-			case <-ctx.Done():
-				return
+	return tea.Batch(
+		func() tea.Msg {
+			defer cancel()
+			opponentID, err := p.client.StartWaiting(p.data.id, ctx)
+			if err != nil {
+				slog.Error("Connection Error", "err", err)
+				p.status = lobbyConnectionErr
+				return nil
 			}
-		}
-	}()
+			if opponentID == uuid.Nil {
+				slog.Info("Not Found Player")
+				p.status = lobbyNotFoundPlayer
+				return nil
+			}
+			slog.Info("Found Player", "id", opponentID)
+			p.data.opponentID = opponentID
+			p.status = lobbyEnteringGame
+			return opponentFoundMsg{opponentID}
+		},
+		func() tea.Msg {
+			ticker := time.NewTicker(time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					p.findingSeconds--
+				case <-ctx.Done():
+					return nil
+				}
+			}
+		},
+	)
 }
 
 func (p *lobbyPage) Init() tea.Cmd {
@@ -123,9 +132,8 @@ func (p *lobbyPage) Init() tea.Cmd {
 		p.fetchUserID()
 	}
 	t := theme.GetTheme()
-	p.startWaiting()
 	p.spinner = t.WaitingSpinner
-	return p.spinner.Tick
+	return tea.Batch(p.spinner.Tick, p.startWaiting())
 }
 
 func (p *lobbyPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -155,7 +163,7 @@ func (p *lobbyPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			switch p.selected {
 			case retry:
-				p.startWaiting()
+				return p, p.startWaiting()
 			case withBot:
 				p.showMessage("Play with Bot")
 			case quit:
@@ -166,12 +174,12 @@ func (p *lobbyPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		p.spinner, cmd = p.spinner.Update(msg)
 		return p, cmd
-	}
-
-	if p.status == lobbyEnteringGame {
-		return p, tea.Batch(
-			cmd(PagePushMsg{ID: GamePage}),
-		)
+	case opponentFoundMsg:
+		return p, tea.Tick(time.Second, func(t time.Time) tea.Msg {
+			return delayedGamePageMsg{}
+		})
+	case delayedGamePageMsg:
+		return p, cmd(PageSwitchMsg{ID: GamePage})
 	}
 	return p, nil
 }
@@ -290,7 +298,7 @@ func (p *lobbyPage) statusView() string {
 	case lobbyNotFoundPlayer:
 		return "Not Found Player"
 	case lobbyFailedGetID:
-		return "Connection Error (start again)"
+		return "Connection Error (ID)"
 	case lobbyConnectionErr:
 		return "Connection Error"
 	}

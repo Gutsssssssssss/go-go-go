@@ -51,6 +51,8 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, a.pushPage(msg.ID)
 	case page.PagePopMsg:
 		return a, a.popPage()
+	case page.PageSwitchMsg:
+		return a, a.switchPage(msg.ID)
 	}
 	currentPage := a.pageStack.Top()
 	a.pages[currentPage], cmd = a.pages[currentPage].Update(msg)
@@ -81,4 +83,15 @@ func (a *appModel) popPage() tea.Cmd {
 		}
 	}
 	return nil
+}
+
+func (a *appModel) switchPage(pageID page.PageID) tea.Cmd {
+	if a.pageStack.Len() > 1 {
+		_, _ = a.pageStack.Pop()
+	}
+	a.pageStack.Push(pageID)
+	if sizable, ok := a.pages[pageID].(layout.Sizable); ok {
+		sizable.SetSize(a.window.width, a.window.height)
+	}
+	return a.pages[pageID].Init()
 }

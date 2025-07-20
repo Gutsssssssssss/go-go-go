@@ -21,7 +21,7 @@ func (c *Client) StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, err
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("dial: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	done := make(chan struct{})
 	errCh := make(chan error)
