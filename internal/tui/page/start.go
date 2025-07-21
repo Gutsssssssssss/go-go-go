@@ -49,7 +49,7 @@ func (p *startPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !p.quitting {
 				p.quitting = true
 			}
-			return p, tea.Quit
+			return p, cmd(PagePopMsg{})
 		case key.Matches(msg, keys.Up()):
 			if p.selected > 0 {
 				p.selected--

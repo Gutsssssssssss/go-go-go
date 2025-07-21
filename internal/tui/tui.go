@@ -16,7 +16,7 @@ type appModel struct {
 }
 
 func New() *appModel {
-	initialPage := page.StartPage
+	initialPage := page.GamePage // TODO: change to StartPage
 	stack := ds.NewStack[page.PageID]()
 	stack.Push(initialPage)
 	return &appModel{
@@ -61,32 +61,37 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a *appModel) View() string {
+	if a.pageStack.Len() == 0 {
+		return ""
+	}
 	return a.pages[a.pageStack.Top()].View()
 }
 
 func (a *appModel) pushPage(pageID page.PageID) tea.Cmd {
-	var cmds []tea.Cmd
 	a.pageStack.Push(pageID)
 	if sizable, ok := a.pages[pageID].(layout.Sizable); ok {
 		sizable.SetSize(a.window.width, a.window.height)
 	}
-	cmds = append(cmds, a.pages[pageID].Init())
-	return tea.Batch(cmds...)
+	return a.pages[pageID].Init()
 }
 
 func (a *appModel) popPage() tea.Cmd {
-	if a.pageStack.Len() > 1 {
-		_, _ = a.pageStack.Pop()
-		currentPage := a.pageStack.Top()
-		if sizable, ok := a.pages[currentPage].(layout.Sizable); ok {
-			sizable.SetSize(a.window.width, a.window.height)
-		}
+	_, err := a.pageStack.Pop()
+	if err != nil {
+		return tea.Quit
+	}
+	if a.pageStack.Len() == 0 {
+		return tea.Quit
+	}
+	currentPage := a.pageStack.Top()
+	if sizable, ok := a.pages[currentPage].(layout.Sizable); ok {
+		sizable.SetSize(a.window.width, a.window.height)
 	}
 	return nil
 }
 
 func (a *appModel) switchPage(pageID page.PageID) tea.Cmd {
-	if a.pageStack.Len() > 1 {
+	if a.pageStack.Len() >= 1 {
 		_, _ = a.pageStack.Pop()
 	}
 	a.pageStack.Push(pageID)
