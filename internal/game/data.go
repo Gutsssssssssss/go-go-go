@@ -7,23 +7,22 @@ type StartGameData struct {
 }
 
 type Vector2 struct {
-	X int
-	Y int
+	X float64
+	Y float64
 }
 
 type ShootData struct {
-	PlayerID  int
-	StoneID   int
-	Power     int
-	Direction Vector2
+	PlayerID int
+	StoneID  int
+	Velocity Vector2
 }
 
 type StoneAnimationData struct {
 	StoneID   int
 	StartTime time.Time
 	EndTime   time.Time
-	Speed     float64
-	Direction Vector2
+	StartPos  Vector2
+	EndPos    Vector2
 }
 
 type GameOverData struct {

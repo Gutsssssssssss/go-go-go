@@ -11,6 +11,7 @@ const (
 	blackStoneStartY = boardWidth / 4 * 3
 	startX           = boardWidth / 12
 	stoneGap         = boardWidth / 12
+	friction         = 0.1
 )
 
 type Game struct {
@@ -67,7 +68,7 @@ func (g *Game) placeStones() {
 				ID:        i,
 				StoneType: white,
 				Position: Vector2{
-					X: startX + stoneGap*i,
+					X: float64(startX + stoneGap*i),
 					Y: whiteStoneStartY,
 				},
 			})
@@ -80,9 +81,31 @@ func (g *Game) placeStones() {
 				ID:        i + maxStones,
 				StoneType: black,
 				Position: Vector2{
-					X: startX + stoneGap*i,
+					X: float64(startX + stoneGap*i),
 					Y: blackStoneStartY,
 				},
 			})
+	}
+}
+
+func (g *Game) shootStone(shootData ShootData) {
+	var movingStone []int
+	g.stones[shootData.StoneID].Velocity = shootData.Velocity
+	movingStone = append(movingStone, shootData.StoneID)
+	for {
+		if len(movingStone) == 0 {
+			break
+		}
+		for _, stoneID := range movingStone {
+			g.stones[stoneID].Position.X += g.stones[stoneID].Velocity.X
+			g.stones[stoneID].Position.Y += g.stones[stoneID].Velocity.Y
+			g.stones[stoneID].Velocity = applyFriction(g.stones[stoneID].Velocity, friction)
+			for _, stone := range g.stones {
+				if stone.ID == stoneID {
+					continue
+				}
+				// TODO : collision detection
+			}
+		}
 	}
 }
