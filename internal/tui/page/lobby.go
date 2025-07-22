@@ -240,7 +240,10 @@ func (p *lobbyPage) View() string {
 				),
 			),
 		),
-		view.Help(&p.help, keys.GetBasicKeys()),
+		view.Help(&p.help, view.HelpProps{
+			KeyMap: keys.GetBasicKeys(),
+			Width:  p.window.width,
+		}),
 	)
 }
 func (p *lobbyPage) isChoiceEnabled(idx int) bool {

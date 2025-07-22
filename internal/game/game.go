@@ -3,15 +3,16 @@ package game
 import "fmt"
 
 const (
-	maxPlayers       = 2
-	boardWidth       = 100
-	boardHeight      = 100
-	maxStones        = 10
-	whiteStoneStartY = boardWidth / 4
-	blackStoneStartY = boardWidth / 4 * 3
-	startX           = boardWidth / 12
-	stoneGap         = boardWidth / 12
-	friction         = 0.1
+	maxPlayers               = 2
+	boardWidth       float64 = 100.0
+	boardHeight      float64 = 100.0
+	maxStones                = 10
+	whiteStoneStartY         = boardHeight / 4
+	blackStoneStartY         = boardHeight / 4 * 3
+	startX                   = boardWidth / 11
+	stoneGap                 = boardWidth / 11
+	friction                 = 0.1
+	stoneRadius              = 1.5
 )
 
 type Game struct {
@@ -39,9 +40,9 @@ func (g *Game) AddPlayer(key string) (needStart bool, err error) {
 	// id is an index of g.players slice
 	id := len(g.players)
 	g.idMap[key] = id
-	stone := white
+	stone := White
 	if len(g.players) == 1 {
-		stone = black
+		stone = Black
 	}
 	g.players = append(g.players, newPlayer(id, stone))
 	if len(g.players) == 2 {
@@ -66,9 +67,10 @@ func (g *Game) placeStones() {
 		g.stones = append(g.stones,
 			Stone{
 				ID:        i,
-				StoneType: white,
+				StoneType: White,
+				Radius:    stoneRadius,
 				Position: Vector2{
-					X: float64(startX + stoneGap*i),
+					X: startX + stoneGap*float64(i),
 					Y: whiteStoneStartY,
 				},
 			})
@@ -79,13 +81,21 @@ func (g *Game) placeStones() {
 		g.stones = append(g.stones,
 			Stone{
 				ID:        i + maxStones,
-				StoneType: black,
+				StoneType: Black,
+				Radius:    stoneRadius,
 				Position: Vector2{
-					X: float64(startX + stoneGap*i),
+					X: startX + stoneGap*float64(i),
 					Y: blackStoneStartY,
 				},
 			})
 	}
+}
+
+func (g *Game) GetStones() []Stone {
+	return g.stones
+}
+func (g *Game) GetSize() (float64, float64) {
+	return boardWidth, boardHeight
 }
 
 func (g *Game) shootStone(shootData ShootData) {
