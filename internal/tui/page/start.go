@@ -49,7 +49,7 @@ func (p *startPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !p.quitting {
 				p.quitting = true
 			}
-			return p, tea.Quit
+			return p, cmd(PagePopMsg{})
 		case key.Matches(msg, keys.Up()):
 			if p.selected > 0 {
 				p.selected--
@@ -83,7 +83,13 @@ func (p *startPage) View() string {
 		// main
 		p.mainView(),
 		// help
-		view.Help(&p.help, keys.GetBasicKeys()),
+		view.Help(
+			&p.help,
+			view.HelpProps{
+				KeyMap: keys.GetBasicKeys(),
+				Width:  p.window.width,
+			},
+		),
 	)
 }
 func (p *startPage) mainView() string {

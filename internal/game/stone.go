@@ -3,8 +3,8 @@ package game
 type StoneType int
 
 const (
-	white StoneType = iota
-	black
+	White StoneType = iota
+	Black
 )
 
 type Stone struct {
