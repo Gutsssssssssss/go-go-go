@@ -1,6 +1,7 @@
 package game
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -82,4 +83,51 @@ func TestIsCollision(t *testing.T) {
 		Radius:   2,
 	}
 	require.True(t, isCollision(stone1, stone2))
+}
+
+func TestNormalizeVector(t *testing.T) {
+	// case1 : different position 
+	p1 := Vector2{X: 3, Y: 4}
+	p2 := Vector2{X: 0, Y: 0}
+	require.Equal(t, Vector2{X: 0.6, Y: 0.8}, normalizeVector(p1, p2))
+
+	// case2 : same position
+	p1 = Vector2{X: 0, Y: 0}
+	p2 = Vector2{X: 0, Y: 0}
+	require.Equal(t, Vector2{X: 0, Y: 0}, normalizeVector(p1, p2))
+}
+
+func TestComputeCollisionVelocities(t *testing.T) {
+	// case 1: same velocity
+	v1 := Vector2{X: 1, Y: 1}
+	v2 := Vector2{X: 1, Y: 1}
+	p1 := Vector2{X: 0, Y: 0}
+	p2 := Vector2{X: 1, Y: 1}
+
+	actual1, actual2 := computeCollisionVelocities(v1, v2, p1, p2)
+	require.Equal(t, Vector2{X: 1, Y: 1}, actual1)
+	require.Equal(t, Vector2{X: 1, Y: 1}, actual2)
+
+	// case 2: collision
+	v1 = Vector2{X: 1, Y: 1}
+	v2 = Vector2{X: 0, Y: 0}
+	p1 = Vector2{X: 0, Y: 0}
+	p2 = Vector2{X: 1, Y: 1}
+	actual1, actual2 = computeCollisionVelocities(v1, v2, p1, p2)
+	expected1 := Vector2{X: 0.125, Y: 0.125}
+	expected2 := Vector2{X: 0.875, Y: 0.875}
+	require.True(t, withinTolerance(actual1.X, expected1.X, 0.0001))
+	require.True(t, withinTolerance(actual1.Y, expected1.Y, 0.0001))
+	require.True(t, withinTolerance(actual2.X, expected2.X, 0.0001))
+	require.True(t, withinTolerance(actual2.Y, expected2.Y, 0.0001))
+}
+
+func withinTolerance(a, b, epsilon float64) bool {
+	return math.Abs(a-b) < epsilon
+}
+
+func TestDotProduct(t *testing.T) {
+	velocity1 := Vector2{X: 1, Y: 2}
+	velocity2 := Vector2{X: 3, Y: 4}
+	require.Equal(t, 11.0, dotProduct(velocity1, velocity2))
 }

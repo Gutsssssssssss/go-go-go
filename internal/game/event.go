@@ -10,7 +10,7 @@ type EventType int
 const (
 	StartGameEvent EventType = iota
 	ShootEvent
-	StoneAnimationEvent
+	StoneAnimationsEvent
 	GameOverEvent
 )
 
@@ -51,8 +51,8 @@ func unmarshalData(t EventType, data []byte) (any, error) {
 		var d ShootData
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case StoneAnimationEvent:
-		var d StoneAnimationData
+	case StoneAnimationsEvent:
+		var d StoneAnimationsData
 		err := json.Unmarshal(data, &d)
 		return d, err
 	case GameOverEvent:

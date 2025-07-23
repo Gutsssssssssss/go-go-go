@@ -1,6 +1,8 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	maxPlayers               = 2
@@ -98,24 +100,112 @@ func (g *Game) GetSize() (float64, float64) {
 	return boardWidth, boardHeight
 }
 
-func (g *Game) shootStone(shootData ShootData) {
-	var movingStone []int
-	g.stones[shootData.StoneID].Velocity = shootData.Velocity
-	movingStone = append(movingStone, shootData.StoneID)
-	for {
-		if len(movingStone) == 0 {
-			break
+type moving struct {
+	id        int
+	startPos  Vector2
+	velocity  Vector2
+	startStep int
+	curStep   int
+	inCollision bool
+}
+
+func (m moving) String() string {
+	return fmt.Sprintf("moving{id: %d, startPos: %v, velocity: %v, startStep: %d, curStep: %d}", m.id, m.startPos, m.velocity, m.startStep, m.curStep)
+}
+
+func addAnimation(animations []Animation, mov moving, endPosition Vector2) []Animation {
+	return append(animations, Animation{
+		StoneID:   mov.id,
+		StartStep: mov.startStep,
+		EndStep:   mov.curStep,
+		StartPos:  mov.startPos,
+		EndPos:    endPosition,
+	})
+}
+
+func simulateCollision(movings []moving, stones []Stone, animations []Animation, dt float64) ([]moving, []Animation) {
+	var nextMovings []moving
+	if len(movings) == 0 {
+		return nextMovings, animations
+	}
+	for _, mov := range movings {
+		id := mov.id
+		stones[id].Position.X += mov.velocity.X * dt
+		stones[id].Position.Y += mov.velocity.Y * dt
+		mov.curStep += 1
+		if outOfBoard(stones[id].Position) {
+			stones[id].isOut = true
+			animations = addAnimation(animations, mov, stones[id].Position)
+			continue
 		}
-		for _, stoneID := range movingStone {
-			g.stones[stoneID].Position.X += g.stones[stoneID].Velocity.X
-			g.stones[stoneID].Position.Y += g.stones[stoneID].Velocity.Y
-			g.stones[stoneID].Velocity = applyFriction(g.stones[stoneID].Velocity, friction)
-			for _, stone := range g.stones {
-				if stone.ID == stoneID {
-					continue
+		mov.velocity = applyFriction(mov.velocity, friction*dt)
+		if mov.velocity.isZero() {
+			animations = addAnimation(animations, mov, stones[id].Position)
+			continue
+		} 
+		hasCollision := false // check collision only once
+		for _, target := range stones {
+			if target.ID == id || target.isOut { continue }
+			if isCollision(stones[id], target) {
+				hasCollision = true
+				if mov.inCollision {
+					break
 				}
-				// TODO : collision detection
+				v1, v2 := computeCollisionVelocities(mov.velocity, zeroVelocity,  stones[id].Position, target.Position)
+				mov.velocity = v1
+				if !v2.isZero() {
+					nextMovings = append(nextMovings,
+						moving{
+							id:        target.ID,
+							startPos:  stones[target.ID].Position,
+							velocity:  v2,
+							startStep: mov.curStep,
+							curStep:   mov.curStep,
+							inCollision: true,
+						},
+					)
+				}
+				animations = addAnimation(animations, mov, stones[id].Position)
+				break
 			}
 		}
+		if mov.inCollision {
+			if !hasCollision {
+				mov.inCollision = false
+			} 	
+		} else {
+			if hasCollision {
+				mov.inCollision = true
+				mov.startStep = mov.curStep
+			}
+		}
+		nextMovings = append(nextMovings, mov) 
 	}
+	return nextMovings, animations
+}
+
+func (g *Game) ShootStone(shootData ShootData) Event {
+	// TODO: add shootData another field. for better client side abstraction
+	striking := g.stones[shootData.StoneID]
+	if striking.isOut {
+		return Event{}
+	}
+	animations := []Animation{}
+	movings := []moving{
+		{id: striking.ID, startPos: striking.Position, velocity: shootData.Velocity, 
+			startStep: 0, curStep: 0, inCollision: false},
+	}
+	for {
+		movings, animations = simulateCollision(movings, g.stones, animations, 0.1)
+		if len(movings) == 0 {
+			break
+		}
+	}
+	evt := Event{Type: StoneAnimationsEvent, Data: StoneAnimationsData{Animations: animations}}
+	g.record = append(g.record, evt)
+	return evt
+}
+
+func outOfBoard(pos Vector2) bool {
+	return pos.X < 0 || pos.X > boardWidth || pos.Y < 0 || pos.Y > boardHeight
 }
