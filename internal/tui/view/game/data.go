@@ -10,14 +10,21 @@ const (
 	ControlCharging
 )
 
-type Direction struct{}
+const (
+	MaxPower = 10
+	MinPower = 0
 
-type Power float64
+	MaxDegrees = 360
+	MinDegrees = 0
+)
+
+type Power int
+type Degrees int // degrees are starting from 0 to 360 (clockwise, from upper (↑))
 
 type ControlData struct {
 	Status          ControlStatus
 	IndicatorColor  lipgloss.Color
 	SelectedStoneID int
-	Direction       Direction
+	Degrees         Degrees
 	Power           Power
 }

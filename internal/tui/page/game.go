@@ -20,6 +20,7 @@ type gamePage struct {
 	game            *game.Game
 	selectedStoneID int
 	status          gameView.ControlStatus
+	degrees         gameView.Degrees
 }
 
 func NewGamePage() tea.Model {
@@ -34,7 +35,7 @@ func (p *gamePage) Init() tea.Cmd {
 	p.game.AddPlayer("player2")
 	p.game.StartGame()
 	p.selectedStoneID = 0
-	p.status = gameView.ControlSelectStone
+	p.status = gameView.ControlDirection
 	return nil
 }
 
@@ -47,14 +48,26 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Quit()):
 			return p, cmd(PagePopMsg{})
 		case key.Matches(msg, keys.Up()):
+			if p.status == gameView.ControlCharging {
+				// TODO: charge power
+			}
 		case key.Matches(msg, keys.Down()):
+			if p.status == gameView.ControlCharging {
+				// TODO: charge power
+			}
 		case key.Matches(msg, keys.Left()):
-			if p.status == gameView.ControlSelectStone {
+			switch p.status {
+			case gameView.ControlSelectStone:
 				p.selectedStoneID = p.game.GetLeftStone(p.selectedStoneID)
+			case gameView.ControlDirection:
+				p.degrees = (p.degrees - 10 + gameView.MaxDegrees) % gameView.MaxDegrees
 			}
 		case key.Matches(msg, keys.Right()):
-			if p.status == gameView.ControlSelectStone {
+			switch p.status {
+			case gameView.ControlSelectStone:
 				p.selectedStoneID = p.game.GetRightStone(p.selectedStoneID)
+			case gameView.ControlDirection:
+				p.degrees = (p.degrees + 10) % gameView.MaxDegrees
 			}
 		case key.Matches(msg, keys.Enter()):
 			switch p.status {
@@ -99,7 +112,7 @@ func (p *gamePage) View() string {
 						Status:          p.status,
 						IndicatorColor:  t.PrimaryColor,
 						SelectedStoneID: p.selectedStoneID,
-						Direction:       gameView.Direction{},
+						Degrees:         p.degrees,
 						Power:           gameView.Power(0),
 					},
 				}),
