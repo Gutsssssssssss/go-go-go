@@ -9,6 +9,7 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/tui/layout"
 	"github.com/yanmoyy/go-go-go/internal/tui/theme"
 	"github.com/yanmoyy/go-go-go/internal/tui/view"
+	gameView "github.com/yanmoyy/go-go-go/internal/tui/view/game"
 )
 
 const GamePage PageID = "game"
@@ -18,20 +19,22 @@ type gamePage struct {
 	help            help.Model
 	game            *game.Game
 	selectedStoneID int
+	status          gameView.ControlStatus
 }
 
 func NewGamePage() tea.Model {
 	p := &gamePage{}
 	p.help = help.New()
 	p.game = game.NewGame()
-	p.game.AddPlayer("player1")
-	p.game.AddPlayer("player2")
-	p.game.StartGame()
 	return p
 }
 
 func (p *gamePage) Init() tea.Cmd {
-	p.selectedStoneID = 10
+	p.game.AddPlayer("player1")
+	p.game.AddPlayer("player2")
+	p.game.StartGame()
+	p.selectedStoneID = 0
+	p.status = gameView.ControlSelectStone
 	return nil
 }
 
@@ -46,9 +49,23 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Up()):
 		case key.Matches(msg, keys.Down()):
 		case key.Matches(msg, keys.Left()):
-			p.selectedStoneID = p.game.GetLeftStone(p.selectedStoneID)
+			if p.status == gameView.ControlSelectStone {
+				p.selectedStoneID = p.game.GetLeftStone(p.selectedStoneID)
+			}
 		case key.Matches(msg, keys.Right()):
-			p.selectedStoneID = p.game.GetRightStone(p.selectedStoneID)
+			if p.status == gameView.ControlSelectStone {
+				p.selectedStoneID = p.game.GetRightStone(p.selectedStoneID)
+			}
+		case key.Matches(msg, keys.Enter()):
+			switch p.status {
+			case gameView.ControlSelectStone:
+				p.status = gameView.ControlDirection
+			case gameView.ControlDirection:
+				p.status = gameView.ControlCharging
+			case gameView.ControlCharging:
+				// TODO: shoot stone
+				p.status = gameView.ControlSelectStone
+			}
 		}
 	}
 	return p, nil
@@ -73,13 +90,18 @@ func (p *gamePage) View() string {
 				Height:      boardHeight,
 				BorderColor: t.PrimaryColor,
 			},
-			view.Game(
+			gameView.View(
 				p.game,
-				view.GameProps{
-					Width:           boardWidth - 2,
-					Height:          boardHeight - 2,
-					IndicatorColor:  t.PrimaryColor,
-					SelectedStoneID: p.selectedStoneID,
+				gameView.Props{
+					Width:  boardWidth - 2,
+					Height: boardHeight - 2,
+					ControlData: gameView.ControlData{
+						Status:          p.status,
+						IndicatorColor:  t.PrimaryColor,
+						SelectedStoneID: p.selectedStoneID,
+						Direction:       gameView.Direction{},
+						Power:           gameView.Power(0),
+					},
 				}),
 		),
 		view.Help(&p.help, view.HelpProps{
