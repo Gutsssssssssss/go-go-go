@@ -1,14 +1,20 @@
 package view
 
 import (
+	"math"
 	"strings"
 
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
+const (
+	triangleSize float64 = 1.0
+)
+
 type GameProps struct {
-	Width  int
-	Height int
+	Width           int
+	Height          int
+	SelectedStoneID int
 }
 
 func Game(game *game.Game, props GameProps) string {
@@ -23,9 +29,9 @@ func Game(game *game.Game, props GameProps) string {
 	// Initialize a grid to represent the board (height rows x width columns)
 	grid := createGrid(props.Width, props.Height)
 
-	// // Map stones to the grid
+	// Map stones to the grid
 	for _, stone := range stones {
-		drawStone(grid, scaleW, scaleH, stone)
+		drawStone(grid, scaleW, scaleH, stone, props.SelectedStoneID)
 	}
 
 	return grid.String()
@@ -46,6 +52,10 @@ func (g grid) String() string {
 	return b.String()
 }
 
+func (g grid) outOfBounds(x, y int) bool {
+	return x < 0 || x >= len(g[0]) || y < 0 || y >= len(g)
+}
+
 func createGrid(width, height int) grid {
 	grid := make([][]string, height)
 	for i := range grid {
@@ -57,11 +67,13 @@ func createGrid(width, height int) grid {
 	return grid
 }
 
-func drawStone(grid grid, scaleW, scaleH float64, stone game.Stone) {
+func drawStone(grid grid, scaleW, scaleH float64, stone game.Stone, selectedID int) {
 	x := stone.Position.X * scaleW
 	y := stone.Position.Y * scaleH
 	radiusW := stone.Radius * scaleW
 	radiusH := stone.Radius * scaleH
+
+	triangleH := triangleSize * scaleH
 
 	var symbol string
 	if stone.StoneType == game.White {
@@ -70,6 +82,9 @@ func drawStone(grid grid, scaleW, scaleH float64, stone game.Stone) {
 		symbol = "◯"
 	}
 	drawCircle(grid, x, y, radiusW, radiusH, symbol)
+	if selectedID == stone.ID {
+		drawTriangle(grid, x, y+radiusH*2+triangleH, triangleH, "▲")
+	}
 }
 
 // drawCircle draws a circle on the grid
@@ -79,7 +94,7 @@ func drawCircle(grid grid, posX, posY, radiusW, radiusH float64, symbol string) 
 	}
 	for y := int(posY - radiusH); y <= int(posY+radiusH); y++ {
 		for x := int(posX - radiusW); x <= int(posX+radiusW); x++ {
-			if outOfBounds(x, y, len(grid[0]), len(grid)) {
+			if grid.outOfBounds(x, y) {
 				continue
 			}
 			dx := (posX - float64(x)) / radiusW
@@ -91,6 +106,17 @@ func drawCircle(grid grid, posX, posY, radiusW, radiusH float64, symbol string) 
 	}
 }
 
-func outOfBounds(x, y int, width, height int) bool {
-	return x < 0 || x >= width || y < 0 || y >= height
+func drawTriangle(grid grid, posX, posY, height float64, symbol string) {
+	if height == 0 {
+		return
+	}
+	for k := 0; k <= int(height); k++ {
+		y := int(posY) + k
+		for x := int(math.Round(posX)) - k; x <= int(math.Round(posX))+k; x++ {
+			if grid.outOfBounds(x, y) {
+				continue
+			}
+			grid[y][x] = symbol
+		}
+	}
 }
