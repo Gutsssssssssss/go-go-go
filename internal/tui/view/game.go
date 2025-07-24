@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
@@ -14,6 +15,7 @@ const (
 type GameProps struct {
 	Width           int
 	Height          int
+	IndicatorColor  lipgloss.Color
 	SelectedStoneID int
 }
 
@@ -31,7 +33,7 @@ func Game(game *game.Game, props GameProps) string {
 
 	// Map stones to the grid
 	for _, stone := range stones {
-		drawStone(grid, scaleW, scaleH, stone, props.SelectedStoneID)
+		drawStone(grid, scaleW, scaleH, stone, props.SelectedStoneID, props.IndicatorColor)
 	}
 
 	return grid.String()
@@ -67,7 +69,7 @@ func createGrid(width, height int) grid {
 	return grid
 }
 
-func drawStone(grid grid, scaleW, scaleH float64, stone game.Stone, selectedID int) {
+func drawStone(grid grid, scaleW, scaleH float64, stone game.Stone, selectedID int, indicatorColor lipgloss.Color) {
 	x := stone.Position.X * scaleW
 	y := stone.Position.Y * scaleH
 	radiusW := stone.Radius * scaleW
@@ -83,7 +85,7 @@ func drawStone(grid grid, scaleW, scaleH float64, stone game.Stone, selectedID i
 	}
 	drawCircle(grid, x, y, radiusW, radiusH, symbol)
 	if selectedID == stone.ID {
-		drawTriangle(grid, x, y+radiusH*2+triangleH, triangleH, "▲")
+		drawTriangle(grid, x, y+radiusH*2+triangleH, triangleH, lipgloss.NewStyle().Foreground(indicatorColor).Render("▲"))
 	}
 }
 

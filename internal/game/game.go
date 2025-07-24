@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sort"
 )
 
 const (
@@ -20,8 +21,8 @@ const (
 type Game struct {
 	record  []Event
 	players []player
-	turn    int
-	idMap   map[string]int // key: userID, value: playerID (to hide userID)
+	turn    playerID
+	idMap   map[string]playerID // key: userID, value: playerID (to hide userID)
 	stones  []Stone
 }
 
@@ -29,19 +30,18 @@ func NewGame() *Game {
 	return &Game{
 		record:  []Event{},
 		players: []player{},
-		turn:    0,
-		idMap:   make(map[string]int),
+		idMap:   make(map[string]playerID),
 		stones:  []Stone{},
 	}
 }
 
-func (g *Game) AddPlayer(key string) (needStart bool, err error) {
+func (g *Game) AddPlayer(uuid string) (needStart bool, err error) {
 	if len(g.players) >= maxPlayers {
 		return false, fmt.Errorf("game is full (max players: %d)", maxPlayers)
 	}
 	// id is an index of g.players slice
-	id := len(g.players)
-	g.idMap[key] = id
+	id := playerID(len(g.players))
+	g.idMap[uuid] = id
 	stone := White
 	if len(g.players) == 1 {
 		stone = Black
@@ -55,7 +55,7 @@ func (g *Game) AddPlayer(key string) (needStart bool, err error) {
 
 func (g *Game) StartGame() Event {
 	g.placeStones()
-	g.turn = 0
+	g.turn = 1
 	evt := Event{Type: StartGameEvent, Data: StartGameData{Turn: g.turn}}
 	g.record = append(g.record, evt)
 	return evt
@@ -96,16 +96,67 @@ func (g *Game) placeStones() {
 func (g *Game) GetStones() []Stone {
 	return g.stones
 }
+
+// GetPlayerStones returns stones of the player with the given playerID
+// It sorts stones by x coordinate
+func (g *Game) getPlayerStones(id playerID) []Stone {
+	var stones []Stone
+	for _, stone := range g.stones {
+		if stone.StoneType == g.players[id].movableStone {
+			stones = append(stones, stone)
+		}
+	}
+	sort.Slice(stones, func(i, j int) bool {
+		return stones[i].Position.X < stones[j].Position.X
+	})
+	return stones
+}
+
 func (g *Game) GetSize() (float64, float64) {
 	return boardWidth, boardHeight
 }
 
+func (g *Game) getNextStone(selectedStoneID int, direction int) (nextStoneID int, err error) {
+	stones := g.getPlayerStones(g.turn)
+	idx := findIdx(stones, selectedStoneID)
+	if idx == -1 {
+		return selectedStoneID, fmt.Errorf("stoneID: %d not found", selectedStoneID)
+	}
+	nextIdx := (idx + direction + len(stones)) % len(stones)
+	return stones[nextIdx].ID, nil
+}
+
+func (g *Game) GetLeftStone(selectedStoneID int) int {
+	nxt, err := g.getNextStone(selectedStoneID, -1)
+	if err != nil {
+		return selectedStoneID
+	}
+	return nxt
+}
+
+func (g *Game) GetRightStone(selectedStoneID int) int {
+	nxt, err := g.getNextStone(selectedStoneID, 1)
+	if err != nil {
+		return selectedStoneID
+	}
+	return nxt
+}
+
+func findIdx(stones []Stone, stoneID int) int {
+	for i, stone := range stones {
+		if stone.ID == stoneID {
+			return i
+		}
+	}
+	return -1
+}
+
 type moving struct {
-	id        int
-	startPos  Vector2
-	velocity  Vector2
-	startStep int
-	curStep   int
+	id          int
+	startPos    Vector2
+	velocity    Vector2
+	startStep   int
+	curStep     int
 	inCollision bool
 }
 
@@ -142,25 +193,27 @@ func simulateCollision(movings []moving, stones []Stone, animations []Animation,
 		if mov.velocity.isZero() {
 			animations = addAnimation(animations, mov, stones[id].Position)
 			continue
-		} 
+		}
 		hasCollision := false // check collision only once
 		for _, target := range stones {
-			if target.ID == id || target.isOut { continue }
+			if target.ID == id || target.isOut {
+				continue
+			}
 			if isCollision(stones[id], target) {
 				hasCollision = true
 				if mov.inCollision {
 					break
 				}
-				v1, v2 := computeCollisionVelocities(mov.velocity, zeroVelocity,  stones[id].Position, target.Position)
+				v1, v2 := computeCollisionVelocities(mov.velocity, zeroVelocity, stones[id].Position, target.Position)
 				mov.velocity = v1
 				if !v2.isZero() {
 					nextMovings = append(nextMovings,
 						moving{
-							id:        target.ID,
-							startPos:  stones[target.ID].Position,
-							velocity:  v2,
-							startStep: mov.curStep,
-							curStep:   mov.curStep,
+							id:          target.ID,
+							startPos:    stones[target.ID].Position,
+							velocity:    v2,
+							startStep:   mov.curStep,
+							curStep:     mov.curStep,
 							inCollision: true,
 						},
 					)
@@ -172,14 +225,14 @@ func simulateCollision(movings []moving, stones []Stone, animations []Animation,
 		if mov.inCollision {
 			if !hasCollision {
 				mov.inCollision = false
-			} 	
+			}
 		} else {
 			if hasCollision {
 				mov.inCollision = true
 				mov.startStep = mov.curStep
 			}
 		}
-		nextMovings = append(nextMovings, mov) 
+		nextMovings = append(nextMovings, mov)
 	}
 	return nextMovings, animations
 }
@@ -192,7 +245,7 @@ func (g *Game) ShootStone(shootData ShootData) Event {
 	}
 	animations := []Animation{}
 	movings := []moving{
-		{id: striking.ID, startPos: striking.Position, velocity: shootData.Velocity, 
+		{id: striking.ID, startPos: striking.Position, velocity: shootData.Velocity,
 			startStep: 0, curStep: 0, inCollision: false},
 	}
 	for {

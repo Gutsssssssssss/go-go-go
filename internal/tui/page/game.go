@@ -1,8 +1,6 @@
 package page
 
 import (
-	"log/slog"
-
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -17,23 +15,28 @@ const GamePage PageID = "game"
 
 type gamePage struct {
 	page
-	help help.Model
-	game *game.Game
+	help            help.Model
+	game            *game.Game
+	selectedStoneID int
 }
 
 func NewGamePage() tea.Model {
 	p := &gamePage{}
 	p.help = help.New()
 	p.game = game.NewGame()
+	p.game.AddPlayer("player1")
+	p.game.AddPlayer("player2")
 	p.game.StartGame()
 	return p
 }
 
 func (p *gamePage) Init() tea.Cmd {
+	p.selectedStoneID = 10
 	return nil
 }
 
 func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// update user stones with sorting by x coordinate
 	keys := keys.GetGameKeys()
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -41,13 +44,11 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Quit()):
 			return p, cmd(PagePopMsg{})
 		case key.Matches(msg, keys.Up()):
-			slog.Info("Up")
 		case key.Matches(msg, keys.Down()):
-			slog.Info("Down")
 		case key.Matches(msg, keys.Left()):
-			slog.Info("Left")
+			p.selectedStoneID = p.game.GetLeftStone(p.selectedStoneID)
 		case key.Matches(msg, keys.Right()):
-			slog.Info("Right")
+			p.selectedStoneID = p.game.GetRightStone(p.selectedStoneID)
 		}
 	}
 	return p, nil
@@ -75,8 +76,10 @@ func (p *gamePage) View() string {
 			view.Game(
 				p.game,
 				view.GameProps{
-					Width:  boardWidth - 2,
-					Height: boardHeight - 2,
+					Width:           boardWidth - 2,
+					Height:          boardHeight - 2,
+					IndicatorColor:  t.PrimaryColor,
+					SelectedStoneID: p.selectedStoneID,
 				}),
 		),
 		view.Help(&p.help, view.HelpProps{

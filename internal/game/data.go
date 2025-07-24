@@ -2,9 +2,8 @@ package game
 
 import "fmt"
 
-
 type StartGameData struct {
-	Turn int `json:"turn"`
+	Turn playerID `json:"turn"`
 }
 
 type Vector2 struct {

@@ -1,11 +1,12 @@
 package game
 
+type playerID int
 type player struct {
-	id           int
+	id           playerID
 	movableStone StoneType
 }
 
-func newPlayer(id int, stoneType StoneType) player {
+func newPlayer(id playerID, stoneType StoneType) player {
 	return player{
 		id:           id,
 		movableStone: stoneType,

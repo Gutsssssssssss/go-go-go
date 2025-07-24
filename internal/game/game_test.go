@@ -86,3 +86,58 @@ func checkIDResult(t *testing.T, expected idMap, evt Event) {
 	}
 	require.Equal(t, expected, ids)
 }
+
+func TestGetPlayerStones(t *testing.T) {
+	g := NewGame()
+	_, _ = g.AddPlayer("player1") // playerID: 0
+	_, _ = g.AddPlayer("player2") // playerID: 1
+	g.stones = []Stone{
+		{ID: 0, Position: Vector2{X: 0, Y: 0}, StoneType: White},
+		{ID: 1, Position: Vector2{X: 1, Y: 0}, StoneType: White},
+		{ID: 2, Position: Vector2{X: 2, Y: 0}, StoneType: Black},
+	}
+	res := g.getPlayerStones(0)
+	require.Equal(t, []Stone{
+		{ID: 0, Position: Vector2{X: 0, Y: 0}, StoneType: White},
+		{ID: 1, Position: Vector2{X: 1, Y: 0}, StoneType: White},
+	}, res)
+
+	res = g.getPlayerStones(1)
+	require.Equal(t, []Stone{
+		{ID: 2, Position: Vector2{X: 2, Y: 0}, StoneType: Black},
+	}, res)
+}
+
+func TestGetNextStone(t *testing.T) {
+	// Test 1: getNextStone
+	g := NewGame()
+	_, _ = g.AddPlayer("player1") // playerID: 0
+	_, _ = g.AddPlayer("player2") // playerID: 1
+	g.stones = []Stone{
+		{ID: 0, Position: Vector2{X: 1, Y: 0}},
+		{ID: 1, Position: Vector2{X: 0, Y: 0}},
+		{ID: 2, Position: Vector2{X: 2, Y: 0}},
+	}
+	// order: 1 0 2
+	// case 1: normal
+	nxtID, err := g.getNextStone(0, -1)
+	require.NoError(t, err)
+	require.Equal(t, 1, nxtID)
+
+	// case 2: not found
+	nxtID, err = g.getNextStone(3, -1)
+	require.Error(t, err)
+	require.Equal(t, 3, nxtID)
+
+	// Test 2: GetLeftStone
+	nxtID = g.GetLeftStone(2)
+	require.Equal(t, 0, nxtID)
+	nxtID = g.GetLeftStone(1)
+	require.Equal(t, 2, nxtID)
+
+	// Test 3: GetRightStone
+	nxtID = g.GetRightStone(1)
+	require.Equal(t, 0, nxtID)
+	nxtID = g.GetRightStone(2)
+	require.Equal(t, 1, nxtID)
+}
