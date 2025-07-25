@@ -8,6 +8,14 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/tui/color"
 )
 
+func (g grid) drawStones(stones []game.Stone, scale scale, data ControlData) {
+	for _, stone := range stones {
+		if !stone.IsOut {
+			g.drawStone(stone, scale, data)
+		}
+	}
+}
+
 func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
 
 	x := stone.Position.X * scale.width
@@ -25,6 +33,27 @@ func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
 		circle = lipgloss.NewStyle().Foreground(color.GolangBlue).Render(circle)
 	}
 	g.drawCircle(x, y, radiusW, radiusH, circle)
+}
+
+
+func (g grid) drawAnimation(anim game.StoneAnimation, curStep int, scale scale, stone game.Stone) {
+	v := game.BlendVector(anim.EndPos, anim.StartPos, 
+		float64(curStep - anim.StartStep)/float64(anim.EndStep - anim.StartStep),
+	)
+	startX := anim.StartPos.X * scale.width
+	startY := anim.StartPos.Y * scale.height
+	curX := v.X * scale.width
+	curY := v.Y * scale.height
+	radiusW := stone.Radius * scale.width
+	radiusH := stone.Radius * scale.height
+	var circle string
+	if stone.StoneType == game.White {
+		circle = "●"
+	} else {
+		circle = "◯"
+	}
+	g.drawCircle(startX, startY, radiusW, radiusH, " ") // clear previous animation
+	g.drawCircle(curX, curY, radiusW, radiusH, circle)
 }
 
 func (g grid) drawIndicator(stone game.Stone, scale scale, data ControlData) {

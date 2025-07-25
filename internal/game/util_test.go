@@ -147,3 +147,11 @@ func TestConvertToVelocity(t *testing.T) {
 	require.Equal(t, 1.0, ConvertToVelocity(30, 2).X)
 	require.Equal(t, -1.0, ConvertToVelocity(60, 2).Y)
 }
+
+func TestBlendVector(t *testing.T) {
+	v1 := Vector2{X: 1, Y: 0}
+	v2 := Vector2{X: 0, Y: 1}
+	require.Equal(t, Vector2{X: 0.5, Y: 0.5}, BlendVector(v1, v2, 0.5))
+	require.Equal(t, Vector2{X: 0, Y: 1}, BlendVector(v1, v2, 0))
+	require.Equal(t, Vector2{X: 1, Y: 0}, BlendVector(v1, v2, 1))
+}

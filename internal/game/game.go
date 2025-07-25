@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"sort"
+	"log/slog"
 )
 
 const (
@@ -174,8 +175,8 @@ func (m moving) String() string {
 	return fmt.Sprintf("moving{id: %d, startPos: %v, velocity: %v, startStep: %d, curStep: %d}", m.id, m.startPos, m.velocity, m.startStep, m.curStep)
 }
 
-func addAnimation(animations []Animation, mov moving, endPosition Vector2) []Animation {
-	return append(animations, Animation{
+func addAnimation(animations []StoneAnimation, mov moving, endPosition Vector2) []StoneAnimation {
+	return append(animations, StoneAnimation{
 		StoneID:   mov.id,
 		StartStep: mov.startStep,
 		EndStep:   mov.curStep,
@@ -184,7 +185,7 @@ func addAnimation(animations []Animation, mov moving, endPosition Vector2) []Ani
 	})
 }
 
-func simulateCollision(movings []moving, stones []Stone, animations []Animation, dt float64) ([]moving, []Animation) {
+func simulateCollision(movings []moving, stones []Stone, animations []StoneAnimation, dt float64) ([]moving, []StoneAnimation) {
 	var nextMovings []moving
 	if len(movings) == 0 {
 		return nextMovings, animations
@@ -240,6 +241,7 @@ func simulateCollision(movings []moving, stones []Stone, animations []Animation,
 			if hasCollision {
 				mov.inCollision = true
 				mov.startStep = mov.curStep
+				mov.startPos = stones[id].Position
 			}
 		}
 		nextMovings = append(nextMovings, mov)
@@ -253,7 +255,9 @@ func (g *Game) ShootStone(shootData ShootData) Event {
 	if striking.IsOut {
 		return Event{}
 	}
-	animations := []Animation{}
+	initialStones := make([]Stone, len(g.stones))
+	copy(initialStones, g.stones)
+	animations := []StoneAnimation{}
 	movings := []moving{
 		{id: striking.ID, startPos: striking.Position, velocity: shootData.Velocity,
 			startStep: 0, curStep: 0, inCollision: false},
@@ -264,7 +268,18 @@ func (g *Game) ShootStone(shootData ShootData) Event {
 			break
 		}
 	}
-	evt := Event{Type: StoneAnimationsEvent, Data: StoneAnimationsData{Animations: animations}}
+	maxStep := 0
+	for _, anim := range animations {
+		if anim.EndStep > maxStep {
+			maxStep = anim.EndStep
+		}
+	}
+	slog.Info("ShootStone", "initialStones", initialStones)
+	evt := Event{Type: StoneAnimationsEvent, Data: StoneAnimationsData{
+		InitialStones: initialStones,
+		Animations:    animations,
+		MaxStep:       maxStep,
+	}}
 	g.record = append(g.record, evt)
 	return evt
 }

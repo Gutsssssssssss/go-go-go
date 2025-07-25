@@ -23,7 +23,7 @@ type ShootData struct {
 	Velocity Vector2 `json:"velocity"`
 }
 
-type Animation struct {
+type StoneAnimation struct {
 	StoneID   int     `json:"stoneID"`
 	StartStep int     `json:"startStep"`
 	EndStep   int     `json:"endStep"`
@@ -31,12 +31,14 @@ type Animation struct {
 	EndPos    Vector2 `json:"endPos"`
 }
 
-func (a Animation) String() string {
+func (a StoneAnimation) String() string {
 	return fmt.Sprintf("Animation{StoneID: %d, StartStep: %d, EndStep: %d, StartPos: %v, EndPos: %v}", a.StoneID, a.StartStep, a.EndStep, a.StartPos, a.EndPos)
 }
 
 type StoneAnimationsData struct {
-	Animations []Animation `json:"animations"`
+	InitialStones []Stone          `json:"initialStones"`
+	Animations    []StoneAnimation `json:"animations"`
+	MaxStep       int              `json:"maxStep"`
 }
 
 type GameOverData struct {

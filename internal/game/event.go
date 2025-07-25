@@ -62,3 +62,11 @@ func unmarshalData(t EventType, data []byte) (any, error) {
 	}
 	return nil, fmt.Errorf("unknown event type: %d", t)
 }
+
+func (e Event) GetAnimationsData() StoneAnimationsData {
+	switch e.Type {
+	case StoneAnimationsEvent:
+		return e.Data.(StoneAnimationsData)
+	}
+	return StoneAnimationsData{}
+}

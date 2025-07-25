@@ -72,3 +72,13 @@ func ConvertToVelocity(degrees, speed float64) Vector2 {
 	dy = -math.Round(dy*100) / 100
 	return Vector2{X: dx * speed, Y: dy * speed}
 }
+
+// BlenVector blends two vectors
+// value is the amount of how the v1 should be blended (0.0 ~ 1.0);
+// Ex) 0.0 -> v1, 1.0 -> v2
+func BlendVector(v1, v2 Vector2, value float64) Vector2 {
+	value = math.Min(1.0, math.Max(0.0, value))
+	x := v1.X*value + v2.X*(1-value)
+	y := v1.Y*value + v2.Y*(1-value)
+	return Vector2{X: x, Y: y}
+}

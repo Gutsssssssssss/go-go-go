@@ -3,6 +3,7 @@ package page
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -31,6 +32,11 @@ type gamePage struct {
 	power           gameView.Power
 	progressOn      progress.Model
 	progressOff     progress.Model
+
+	// Animation
+	animationData *game.StoneAnimationsData
+	currentStep   int
+	isAnimating   bool
 }
 
 func NewGamePage() tea.Model {
@@ -54,6 +60,9 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	keys := keys.GetGameKeys()
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if p.isAnimating {
+			return p, nil
+		}
 		switch {
 		case key.Matches(msg, keys.Quit()):
 			return p, cmd(PagePopMsg{})
@@ -107,14 +116,16 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						Velocity: velocity,
 					},
 				)
-				slog.Info("Shoot", "evt", evt)
-				p.selectedStoneID = p.game.GetCurrentStone(0, p.selectedStoneID)
-				p.status = gameView.ControlSelectStone
+				return p.startAnimation(evt)
 			}
 		}
+	case tickMsg:
+		return p.updateAnimation()
 	}
 	return p, nil
 }
+
+type tickMsg struct{}
 
 func (p *gamePage) View() string {
 	if p.window.width == 0 || p.window.height == 0 {
@@ -182,8 +193,10 @@ func (p *gamePage) View() string {
 					gameView.View(
 						p.game,
 						gameView.Props{
-							Width:  boardWidth - 4,
-							Height: boardHeight - 4,
+							Width:            boardWidth - 4,
+							Height:           boardHeight - 4,
+							AnimationsData:   p.animationData,
+							CurAnimationStep: p.currentStep,
 							ControlData: gameView.ControlData{
 								Status:          p.status,
 								SelectedStoneID: p.selectedStoneID,
@@ -237,4 +250,39 @@ func (p *gamePage) getProgress(s gameView.ControlStatus, current gameView.Contro
 		return p.progressOn
 	}
 	return p.progressOff
+}
+
+func (p *gamePage) startAnimation(evt game.Event) (tea.Model, tea.Cmd) {
+	if data, ok := evt.Data.(game.StoneAnimationsData); ok {
+		p.animationData = &data
+		p.currentStep = 0
+		p.isAnimating = true
+		// Start animation with a tick
+		return p, tea.Tick(time.Millisecond*10, func(time.Time) tea.Msg {
+			return tickMsg{}
+		})
+	}
+	p.selectedStoneID = p.game.GetCurrentStone(0, p.selectedStoneID)
+	p.status = gameView.ControlSelectStone // Fallback if no animation
+	return p, nil
+}
+
+func (p *gamePage) updateAnimation() (tea.Model, tea.Cmd) {
+	if p.isAnimating && p.animationData != nil {
+		p.currentStep++
+		if p.currentStep >= p.animationData.MaxStep {
+			// Animation complete
+			p.isAnimating = false
+			p.animationData = nil
+			p.currentStep = 0
+			p.status = gameView.ControlSelectStone
+			return p, nil
+		}
+		slog.Info("Animation", "currentStep", p.currentStep, "maxStep", p.animationData.MaxStep)
+		// Continue animation
+		return p, tea.Tick(time.Millisecond*10, func(time.Time) tea.Msg {
+			return tickMsg{}
+		})
+	}
+	return p, nil
 }
