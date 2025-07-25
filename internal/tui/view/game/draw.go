@@ -23,6 +23,7 @@ func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
 	} else {
 		circle = "◯"
 	}
+	g.drawCircle(x, y, radiusW, radiusH, circle)
 	triangle := lipgloss.NewStyle().Foreground(data.IndicatorColor).Render("▲")
 	if data.SelectedStoneID == stone.ID {
 		g.drawTriangle(x, y+radiusH*2+triangleH, triangleH, triangle)
@@ -30,13 +31,11 @@ func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
 		case ControlDirection:
 			// degrees based on x axis
 			degrees := (data.Degrees - 90 + 360) % 360
-			g.drawDirection(x, y, radiusW, radiusH, degrees, "+")
+			g.drawDirection(x, y, radiusW, radiusH, degrees, "d")
 		case ControlCharging:
 			// TODO: draw Charging indicator
 		}
-		circle = lipgloss.NewStyle().Foreground(data.IndicatorColor).Render(circle)
 	}
-	g.drawCircle(x, y, radiusW, radiusH, circle)
 }
 
 // drawCircle draws a circle on the grid
@@ -62,7 +61,7 @@ func (g grid) drawTriangle(posX, posY, height float64, symbol string) {
 	if height == 0 {
 		return
 	}
-	for k := 0; k <= int(height); k++ {
+	for k := 0; k < int(height); k++ {
 		y := int(posY) + k
 		for x := int(math.Round(posX)) - k; x <= int(math.Round(posX))+k; x++ {
 			if g.outOfBounds(x, y) {
@@ -111,7 +110,7 @@ func (g grid) drawDirection(posX, posY, radiusW, radiusH float64, degrees Degree
 			dx := (posX - float64(x)) / radiusW
 			dy := (posY - float64(y)) / radiusH
 			r := dx*dx + dy*dy
-			if r > 1.0 && r < 5.0 {
+			if r > 1.0 && r <= 8.0 {
 				var dist float64
 				switch degrees {
 				case 0, 180:
