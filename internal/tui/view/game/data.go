@@ -14,8 +14,8 @@ const (
 	MaxPower = 10
 	MinPower = 0
 
-	MaxDegrees = 360
-	MinDegrees = 0
+	MaxDegrees = 180
+	MinDegrees = -180
 )
 
 type Power int

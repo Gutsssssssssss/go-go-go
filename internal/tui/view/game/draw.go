@@ -23,19 +23,20 @@ func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
 	} else {
 		circle = "◯"
 	}
-	g.drawCircle(x, y, radiusW, radiusH, circle)
 	triangle := lipgloss.NewStyle().Foreground(data.IndicatorColor).Render("▲")
 	if data.SelectedStoneID == stone.ID {
 		g.drawTriangle(x, y+radiusH*2+triangleH, triangleH, triangle)
 		switch data.Status {
 		case ControlDirection:
 			// degrees based on x axis
-			degrees := (data.Degrees - 90 + MaxDegrees) % MaxDegrees
-			g.drawDirection(x, y, radiusW, radiusH, degrees, "d")
+			degrees := (data.Degrees - 90 + 360) % 360
+			g.drawDirection(x, y, radiusW, radiusH, degrees, "+")
 		case ControlCharging:
 			// TODO: draw Charging indicator
 		}
+		circle = lipgloss.NewStyle().Foreground(data.IndicatorColor).Render(circle)
 	}
+	g.drawCircle(x, y, radiusW, radiusH, circle)
 }
 
 // drawCircle draws a circle on the grid

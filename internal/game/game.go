@@ -116,8 +116,8 @@ func (g *Game) GetSize() (float64, float64) {
 	return boardWidth, boardHeight
 }
 
-func (g *Game) getNextStone(selectedStoneID int, direction int) (nextStoneID int, err error) {
-	stones := g.getPlayerStones(g.turn)
+func (g *Game) getNextStone(playerID playerID, selectedStoneID int, direction int) (nextStoneID int, err error) {
+	stones := g.getPlayerStones(playerID)
 	idx := findIdx(stones, selectedStoneID)
 	if idx == -1 {
 		return selectedStoneID, fmt.Errorf("stoneID: %d not found", selectedStoneID)
@@ -126,16 +126,16 @@ func (g *Game) getNextStone(selectedStoneID int, direction int) (nextStoneID int
 	return stones[nextIdx].ID, nil
 }
 
-func (g *Game) GetLeftStone(selectedStoneID int) int {
-	nxt, err := g.getNextStone(selectedStoneID, -1)
+func (g *Game) GetLeftStone(playerID playerID, selectedStoneID int) int {
+	nxt, err := g.getNextStone(playerID, selectedStoneID, -1)
 	if err != nil {
 		return selectedStoneID
 	}
 	return nxt
 }
 
-func (g *Game) GetRightStone(selectedStoneID int) int {
-	nxt, err := g.getNextStone(selectedStoneID, 1)
+func (g *Game) GetRightStone(playerID playerID, selectedStoneID int) int {
+	nxt, err := g.getNextStone(playerID, selectedStoneID, 1)
 	if err != nil {
 		return selectedStoneID
 	}
