@@ -5,17 +5,15 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yanmoyy/go-go-go/internal/game"
+	"github.com/yanmoyy/go-go-go/internal/tui/color"
 )
 
 func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
-	const triangleSize = 1.0
 
 	x := stone.Position.X * scale.width
 	y := stone.Position.Y * scale.height
 	radiusW := stone.Radius * scale.width
 	radiusH := stone.Radius * scale.height
-
-	triangleH := triangleSize * scale.height
 
 	var circle string
 	if stone.StoneType == game.White {
@@ -23,18 +21,29 @@ func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
 	} else {
 		circle = "◯"
 	}
-	g.drawCircle(x, y, radiusW, radiusH, circle)
-	triangle := lipgloss.NewStyle().Foreground(data.IndicatorColor).Render("▲")
 	if data.SelectedStoneID == stone.ID {
+		circle = lipgloss.NewStyle().Foreground(color.GolangBlue).Render(circle)
+	}
+	g.drawCircle(x, y, radiusW, radiusH, circle)
+}
+
+func (g grid) drawIndicator(stone game.Stone, scale scale, data ControlData) {
+	const triangleSize = 1.5
+
+	x := stone.Position.X * scale.width
+	y := stone.Position.Y * scale.height
+	radiusW := stone.Radius * scale.width
+	radiusH := stone.Radius * scale.height
+
+	switch data.Status {
+	case ControlSelectStone:
+		triangleH := triangleSize * scale.height
+		triangle := lipgloss.NewStyle().Foreground(color.GolangBlue).Render("▲")
 		g.drawTriangle(x, y+radiusH*2+triangleH, triangleH, triangle)
-		switch data.Status {
-		case ControlDirection:
-			// degrees based on x axis
-			degrees := (data.Degrees - 90 + 360) % 360
-			g.drawDirection(x, y, radiusW, radiusH, degrees, "d")
-		case ControlCharging:
-			// TODO: draw Charging indicator
-		}
+	case ControlDirection, ControlCharging:
+		// degrees based on x axis
+		degrees := (data.Degrees - 90 + 360) % 360
+		g.drawDirection(x, y, radiusW, radiusH, degrees, lipgloss.NewStyle().Foreground(color.GolangBlue).Render("d"))
 	}
 }
 
@@ -61,7 +70,7 @@ func (g grid) drawTriangle(posX, posY, height float64, symbol string) {
 	if height == 0 {
 		return
 	}
-	for k := 0; k < int(height); k++ {
+	for k := 0; k < int(math.Round(height)); k++ {
 		y := int(posY) + k
 		for x := int(math.Round(posX)) - k; x <= int(math.Round(posX))+k; x++ {
 			if g.outOfBounds(x, y) {

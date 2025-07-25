@@ -102,7 +102,7 @@ func (g *Game) GetStones() []Stone {
 func (g *Game) getPlayerStones(id playerID) []Stone {
 	var stones []Stone
 	for _, stone := range g.stones {
-		if stone.StoneType == g.players[id].movableStone {
+		if stone.StoneType == g.players[id].movableStone && !stone.IsOut {
 			stones = append(stones, stone)
 		}
 	}
@@ -118,9 +118,12 @@ func (g *Game) GetSize() (float64, float64) {
 
 func (g *Game) getNextStone(playerID playerID, selectedStoneID int, direction int) (nextStoneID int, err error) {
 	stones := g.getPlayerStones(playerID)
+	if len(stones) == 0 {
+		return selectedStoneID, fmt.Errorf("no stones found")
+	}
 	idx := findIdx(stones, selectedStoneID)
 	if idx == -1 {
-		return selectedStoneID, fmt.Errorf("stoneID: %d not found", selectedStoneID)
+		idx = 0
 	}
 	nextIdx := (idx + direction + len(stones)) % len(stones)
 	return stones[nextIdx].ID, nil
@@ -140,6 +143,13 @@ func (g *Game) GetRightStone(playerID playerID, selectedStoneID int) int {
 		return selectedStoneID
 	}
 	return nxt
+}
+func (g *Game) GetCurrentStone(playerID playerID, selectedStoneID int) int {
+	cur, err := g.getNextStone(playerID, selectedStoneID, 0)
+	if err != nil {
+		return selectedStoneID
+	}
+	return cur
 }
 
 func findIdx(stones []Stone, stoneID int) int {
@@ -185,7 +195,7 @@ func simulateCollision(movings []moving, stones []Stone, animations []Animation,
 		stones[id].Position.Y += mov.velocity.Y * dt
 		mov.curStep += 1
 		if outOfBoard(stones[id].Position) {
-			stones[id].isOut = true
+			stones[id].IsOut = true
 			animations = addAnimation(animations, mov, stones[id].Position)
 			continue
 		}
@@ -196,7 +206,7 @@ func simulateCollision(movings []moving, stones []Stone, animations []Animation,
 		}
 		hasCollision := false // check collision only once
 		for _, target := range stones {
-			if target.ID == id || target.isOut {
+			if target.ID == id || target.IsOut {
 				continue
 			}
 			if isCollision(stones[id], target) {
@@ -240,7 +250,7 @@ func simulateCollision(movings []moving, stones []Stone, animations []Animation,
 func (g *Game) ShootStone(shootData ShootData) Event {
 	// TODO: add shootData another field. for better client side abstraction
 	striking := g.stones[shootData.StoneID]
-	if striking.isOut {
+	if striking.IsOut {
 		return Event{}
 	}
 	animations := []Animation{}

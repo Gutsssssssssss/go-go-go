@@ -13,7 +13,7 @@ type Stone struct {
 	ID        int
 	StoneType StoneType
 	Position  Vector2
-	isOut       bool
+	IsOut     bool
 	Radius    float64
 }
 

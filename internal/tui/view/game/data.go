@@ -1,7 +1,5 @@
 package game
 
-import "github.com/charmbracelet/lipgloss"
-
 type ControlStatus int
 
 const (
@@ -23,7 +21,6 @@ type Degrees int // degrees are starting from 0 to 360 (clockwise, from upper (â
 
 type ControlData struct {
 	Status          ControlStatus
-	IndicatorColor  lipgloss.Color
 	SelectedStoneID int
 	Degrees         Degrees
 	Power           Power

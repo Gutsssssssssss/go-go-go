@@ -61,3 +61,14 @@ func normalizeVector(p1, p2 Vector2) Vector2 {
 	}
 	return Vector2{X: normal.X / magnitude, Y: normal.Y / magnitude}
 }
+
+// Degrees: Max = 180, Min = -180
+func ConvertToVelocity(degrees, speed float64) Vector2 {
+	// 0 -> 90, 90 -> 0, 180 -> -90, -90 -> 180
+	degrees = -(degrees - 90)
+	dx := math.Cos(degrees / 180 * math.Pi)
+	dy := math.Sin(degrees / 180 * math.Pi)
+	dx = math.Round(dx*100) / 100
+	dy = -math.Round(dy*100) / 100
+	return Vector2{X: dx * speed, Y: dy * speed}
+}

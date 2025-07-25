@@ -86,7 +86,7 @@ func TestIsCollision(t *testing.T) {
 }
 
 func TestNormalizeVector(t *testing.T) {
-	// case1 : different position 
+	// case1 : different position
 	p1 := Vector2{X: 3, Y: 4}
 	p2 := Vector2{X: 0, Y: 0}
 	require.Equal(t, Vector2{X: 0.6, Y: 0.8}, normalizeVector(p1, p2))
@@ -130,4 +130,20 @@ func TestDotProduct(t *testing.T) {
 	velocity1 := Vector2{X: 1, Y: 2}
 	velocity2 := Vector2{X: 3, Y: 4}
 	require.Equal(t, 11.0, dotProduct(velocity1, velocity2))
+}
+
+func TestConvertToVelocity(t *testing.T) {
+	// Test 1: 0 power
+	require.Equal(t, Vector2{X: 0, Y: 0}, ConvertToVelocity(0, 0))
+	require.Equal(t, Vector2{X: 0, Y: 0}, ConvertToVelocity(180, 0))
+
+	// Test 2: 10 power
+	require.Equal(t, Vector2{X: 0, Y: -10}, ConvertToVelocity(0, 10))
+	require.Equal(t, Vector2{X: 0, Y: 10}, ConvertToVelocity(180, 10))
+	require.Equal(t, Vector2{X: 10, Y: 0}, ConvertToVelocity(90, 10))
+	require.Equal(t, Vector2{X: -10, Y: 0}, ConvertToVelocity(-90, 10))
+
+	// Test 3: Random Cases
+	require.Equal(t, 1.0, ConvertToVelocity(30, 2).X)
+	require.Equal(t, -1.0, ConvertToVelocity(60, 2).Y)
 }

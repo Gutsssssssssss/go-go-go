@@ -28,8 +28,12 @@ func View(game *game.Game, props Props) string {
 
 	// Map stones to the grid
 	for _, stone := range stones {
-		grid.drawStone(stone, scale, props.ControlData)
+		if !stone.IsOut {
+			grid.drawStone(stone, scale, props.ControlData)
+		}
 	}
+	selectedStone := stones[props.ControlData.SelectedStoneID]
+	grid.drawIndicator(selectedStone, scale, props.ControlData)
 
 	return grid.String()
 }

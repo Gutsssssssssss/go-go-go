@@ -2,6 +2,7 @@ package page
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -39,21 +40,6 @@ func NewGamePage() tea.Model {
 	p.setProgresses()
 	return p
 }
-
-func (p *gamePage) setProgresses() {
-	p.progressOn = progress.New(
-		progress.WithScaledGradient(string(color.GolangBlue), string(color.GolangLightBlue)),
-	)
-	p.progressOn.ShowPercentage = false
-	p.progressOn.EmptyColor = string(color.Gray)
-
-	p.progressOff = progress.New(
-		progress.WithScaledGradient(string(color.Darkgray), string(color.Gray)),
-	)
-	p.progressOff.ShowPercentage = false
-	p.progressOff.EmptyColor = string(color.Gray)
-}
-
 func (p *gamePage) Init() tea.Cmd {
 	p.game.AddPlayer("player1")
 	p.game.AddPlayer("player2")
@@ -61,9 +47,6 @@ func (p *gamePage) Init() tea.Cmd {
 	p.selectedStoneID = 0
 	p.status = gameView.ControlSelectStone
 	return nil
-}
-func (p *gamePage) SetSize(width, height int) {
-	p.page.SetSize(width, height)
 }
 
 func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -115,25 +98,22 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case gameView.ControlDirection:
 				p.status = gameView.ControlCharging
 			case gameView.ControlCharging:
+				// TODO: shoot stone
+				velocity := game.ConvertToVelocity(float64(p.degrees), float64(p.power))
+				evt := p.game.ShootStone(
+					game.ShootData{
+						PlayerID: 0,
+						StoneID:  p.selectedStoneID,
+						Velocity: velocity,
+					},
+				)
+				slog.Info("Shoot", "evt", evt)
+				p.selectedStoneID = p.game.GetCurrentStone(0, p.selectedStoneID)
 				p.status = gameView.ControlSelectStone
 			}
 		}
 	}
 	return p, nil
-}
-
-func getColor(s gameView.ControlStatus, current gameView.ControlStatus) lipgloss.Color {
-	if s == current {
-		return theme.GetTheme().PrimaryColor
-	}
-	return theme.GetTheme().DisabledColor
-}
-
-func (p *gamePage) getProgress(s gameView.ControlStatus, current gameView.ControlStatus) progress.Model {
-	if s == current {
-		return p.progressOn
-	}
-	return p.progressOff
 }
 
 func (p *gamePage) View() string {
@@ -206,7 +186,6 @@ func (p *gamePage) View() string {
 							Height: boardHeight - 4,
 							ControlData: gameView.ControlData{
 								Status:          p.status,
-								IndicatorColor:  getColor(p.status, gameView.ControlSelectStone),
 								SelectedStoneID: p.selectedStoneID,
 								Degrees:         p.degrees,
 								Power:           gameView.Power(0),
@@ -230,4 +209,32 @@ func (p *gamePage) View() string {
 			Width:  p.window.width,
 		}),
 	)
+}
+
+func (p *gamePage) setProgresses() {
+	p.progressOn = progress.New(
+		progress.WithScaledGradient(string(color.GolangBlue), string(color.GolangLightBlue)),
+	)
+	p.progressOn.ShowPercentage = false
+	p.progressOn.EmptyColor = string(color.Gray)
+
+	p.progressOff = progress.New(
+		progress.WithScaledGradient(string(color.Darkgray), string(color.Gray)),
+	)
+	p.progressOff.ShowPercentage = false
+	p.progressOff.EmptyColor = string(color.Gray)
+}
+
+func getColor(s gameView.ControlStatus, current gameView.ControlStatus) lipgloss.Color {
+	if s == current {
+		return theme.GetTheme().PrimaryColor
+	}
+	return theme.GetTheme().DisabledColor
+}
+
+func (p *gamePage) getProgress(s gameView.ControlStatus, current gameView.ControlStatus) progress.Model {
+	if s == current {
+		return p.progressOn
+	}
+	return p.progressOff
 }

@@ -126,8 +126,8 @@ func TestGetNextStone(t *testing.T) {
 
 	// case 2: not found
 	nxtID, err = g.getNextStone(0, 3, -1)
-	require.Error(t, err)
-	require.Equal(t, 3, nxtID)
+	require.NoError(t, err)
+	require.Equal(t, 2, nxtID)
 
 	// Test 2: GetLeftStone
 	nxtID = g.GetLeftStone(0, 2)
