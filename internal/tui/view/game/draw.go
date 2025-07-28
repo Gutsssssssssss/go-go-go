@@ -35,10 +35,9 @@ func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
 	g.drawCircle(x, y, radiusW, radiusH, circle)
 }
 
-
 func (g grid) drawAnimation(anim game.StoneAnimation, curStep int, scale scale, stone game.Stone) {
-	v := game.BlendVector(anim.EndPos, anim.StartPos, 
-		float64(curStep - anim.StartStep)/float64(anim.EndStep - anim.StartStep),
+	v := game.BlendVector(anim.EndPos, anim.StartPos,
+		float64(curStep-anim.StartStep)/float64(anim.EndStep-anim.StartStep),
 	)
 	startX := anim.StartPos.X * scale.width
 	startY := anim.StartPos.Y * scale.height
@@ -72,7 +71,7 @@ func (g grid) drawIndicator(stone game.Stone, scale scale, data ControlData) {
 	case ControlDirection, ControlCharging:
 		// degrees based on x axis
 		degrees := (data.Degrees - 90 + 360) % 360
-		g.drawDirection(x, y, radiusW, radiusH, degrees, lipgloss.NewStyle().Foreground(color.GolangBlue).Render("d"))
+		g.drawDirection(x, y, radiusW, radiusH, degrees, lipgloss.NewStyle().Foreground(color.GolangBlue).Render("+"))
 	}
 }
 
@@ -119,29 +118,30 @@ func (g grid) drawDirection(posX, posY, radiusW, radiusH float64, degrees Degree
 	// thick:
 	//  0  | 180 : radiusH
 	//  90 | 270 : radiusW
-	thickness := (math.Abs(math.Cos(rad)*radiusH) + math.Abs(math.Sin(rad)*radiusW)) / 4
-	for y := int(posY - 2*radiusH); y <= int(posY+2*radiusH); y++ {
-		for x := int(posX - 2*radiusW); x <= int(posX+2*radiusW); x++ {
+	thickness := (math.Abs(math.Cos(rad)*radiusH) + math.Abs(math.Sin(rad)*radiusW)) / 3
+	for y := int(posY - 3*radiusH); y <= int(posY+3*radiusH); y++ {
+		for x := int(posX - 3*radiusW); x <= int(posX+3*radiusW); x++ {
 			if g.outOfBounds(x, y) {
 				continue
 			}
-			if 0 <= degrees && degrees < 90 {
-				if x-int(posX) < 0 || y-int(posY) < 0 {
+			// left: 0, down: 90, right: 180, up: 270
+			if 315 <= degrees || degrees < 45 {
+				if x-int(posX) <= 0 {
 					continue
 				}
 			}
-			if 90 <= degrees && degrees < 180 {
-				if x-int(posX) > 0 || y-int(posY) < 0 {
+			if 45 <= degrees && degrees < 135 {
+				if y-int(posY) <= 0 {
 					continue
 				}
 			}
-			if 180 <= degrees && degrees < 270 {
-				if x-int(posX) > 0 || y-int(posY) > 0 {
+			if 135 <= degrees && degrees < 225 {
+				if x-int(posX) >= 0 {
 					continue
 				}
 			}
-			if 270 <= degrees && degrees <= 360 {
-				if x-int(posX) < 0 || y-int(posY) > 0 {
+			if 225 <= degrees && degrees < 315 {
+				if y-int(posY) >= 0 {
 					continue
 				}
 			}
@@ -158,7 +158,7 @@ func (g grid) drawDirection(posX, posY, radiusW, radiusH float64, degrees Degree
 				default:
 					dist = distancePointToLine(point{float64(x), float64(y)}, line{a, b})
 				}
-				if dist <= thickness {
+				if dist <= float64(thickness) {
 					g[y][x] = symbol
 				}
 			}
@@ -175,5 +175,5 @@ type line struct {
 }
 
 func distancePointToLine(p point, l line) float64 {
-	return math.Abs(l.a*p.x-p.y+l.b) / math.Sqrt(math.Pow(l.a, 2)+1)
+	return math.Abs(l.a*p.x-p.y+l.b) / math.Sqrt(l.a*l.a+1)
 }

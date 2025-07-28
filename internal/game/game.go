@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"sort"
-	"log/slog"
 )
 
 const (
@@ -274,7 +273,6 @@ func (g *Game) ShootStone(shootData ShootData) Event {
 			maxStep = anim.EndStep
 		}
 	}
-	slog.Info("ShootStone", "initialStones", initialStones)
 	evt := Event{Type: StoneAnimationsEvent, Data: StoneAnimationsData{
 		InitialStones: initialStones,
 		Animations:    animations,

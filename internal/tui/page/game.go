@@ -2,7 +2,6 @@ package page
 
 import (
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -278,7 +277,6 @@ func (p *gamePage) updateAnimation() (tea.Model, tea.Cmd) {
 			p.status = gameView.ControlSelectStone
 			return p, nil
 		}
-		slog.Info("Animation", "currentStep", p.currentStep, "maxStep", p.animationData.MaxStep)
 		// Continue animation
 		return p, tea.Tick(time.Millisecond*10, func(time.Time) tea.Msg {
 			return tickMsg{}
