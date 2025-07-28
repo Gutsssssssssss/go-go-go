@@ -15,7 +15,7 @@ const (
 // Session represents a game session
 type Session struct {
 	game         *game.Game
-	clients      map[*Client]bool
+	clients      map[uuid.UUID]*Client
 	registerCh   chan *Client
 	unregisterCh chan *Client
 	messageCh    chan message
@@ -25,7 +25,7 @@ func NewGameSession() *Session {
 	game := game.NewGame()
 	return &Session{
 		game:         game,
-		clients:      make(map[*Client]bool),
+		clients:      make(map[uuid.UUID]*Client),
 		registerCh:   make(chan *Client),
 		unregisterCh: make(chan *Client),
 		messageCh:    make(chan message, maxBufferSize),
@@ -44,18 +44,21 @@ func (s *Session) Listen() {
 		for {
 			select {
 			case client := <-s.registerCh:
-				s.clients[client] = true
+				s.clients[client.id] = client 
 				slog.Info("Session: Registered", "clientID", client.id)
 				needStart, err := s.game.AddPlayer(client.id.String())
 				if err != nil {
 					slog.Error("failed to add player", "err", err)
 				}
 				if needStart {
-					evt := s.game.StartGame()
-					s.broadcastWithJSON(evt)
+					s.game.StartGame()
+					for id := range s.clients {
+						evt := s.game.GetPlayerStartGameEvent(id.String())
+						s.sendClientWithJSON(id, evt)
+					}
 				}
 			case client := <-s.unregisterCh:
-				delete(s.clients, client)
+				delete(s.clients, client.id)
 				slog.Info("Session: Unregistered", "clientID", client.id)
 			case msg := <-s.messageCh:
 				s.handleMessage(msg)
@@ -85,9 +88,19 @@ func (s *Session) broadcastWithJSON(data any) {
 		slog.Error("failed to marshal data", "err", err)
 		return
 	}
-	for client := range s.clients {
+	for _, client := range s.clients {
 		client.messageCh <- jsonData
 	}
+}
+
+func (s *Session) sendClientWithJSON(clientID uuid.UUID, data any) {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		slog.Error("failed to marshal data", "err", err)
+		return
+	}
+	client := s.clients[clientID]
+	client.messageCh <- jsonData
 }
 
 // handleMessage handles a message from a client

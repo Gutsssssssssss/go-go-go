@@ -10,13 +10,14 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/api"
 )
 
-func (c *Client) GetID() (uuid.UUID, error) {
+func GetID() (uuid.UUID, error) {
+	c := getClient()
 	url := c.baseURL + "/api/user/id"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("new request: %w", err)
 	}
-	res, err := c.client.Do(req)
+	res, err := c.http.Do(req)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("do request: %w", err)
 	}

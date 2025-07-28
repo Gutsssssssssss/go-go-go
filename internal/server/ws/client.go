@@ -58,8 +58,9 @@ func (c *Client) ReadPump() {
 		_, payload, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				slog.Error("client: cannot read message", "err", err)
+				slog.Error("client: unexpected close error", "err", err)
 			}
+			slog.Debug("client: read message", "err", err)
 			break
 		}
 		c.session.Send(message{clientID: c.id, payload: payload})
@@ -106,7 +107,7 @@ func (c *Client) WritePump() {
 			}
 		case <-ticker.C:
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 				return
 			}
 		}

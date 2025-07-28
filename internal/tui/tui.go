@@ -16,7 +16,7 @@ type appModel struct {
 }
 
 func New() *appModel {
-	initialPage := page.GamePage // TODO: change to StartPage
+	initialPage := page.StartPage
 	stack := ds.NewStack[page.PageID]()
 	stack.Push(initialPage)
 	return &appModel{

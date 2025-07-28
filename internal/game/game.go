@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"sort"
 )
 
 const (
@@ -18,9 +17,11 @@ const (
 	stoneRadius              = 1.5
 )
 
+type playerID int
+
 type Game struct {
 	record  []Event
-	players []player
+	players []Player
 	turn    playerID
 	idMap   map[string]playerID // key: userID, value: playerID (to hide userID)
 	stones  []Stone
@@ -29,7 +30,7 @@ type Game struct {
 func NewGame() *Game {
 	return &Game{
 		record:  []Event{},
-		players: []player{},
+		players: []Player{},
 		idMap:   make(map[string]playerID),
 		stones:  []Stone{},
 	}
@@ -41,29 +42,40 @@ func (g *Game) AddPlayer(uuid string) (needStart bool, err error) {
 	}
 	// id is an index of g.players slice
 	id := playerID(len(g.players))
-	g.idMap[uuid] = id
+	g.idMap[uuid] = id 
 	stone := White
 	if len(g.players) == 1 {
 		stone = Black
 	}
-	g.players = append(g.players, newPlayer(id, stone))
+	g.players = append(g.players, Player{ID: int(id), StoneType: stone})
 	if len(g.players) == 2 {
 		return true, nil
 	}
 	return false, nil
 }
 
-func (g *Game) StartGame() Event {
+// StartGame starts the game and returns the playerID of the current turn
+func (g *Game) StartGame() { 
 	g.placeStones()
-	g.turn = 1
-	evt := Event{Type: StartGameEvent, Data: StartGameData{Turn: g.turn}}
+	g.turn = 0
+	evt := Event{Type: StartGame, Data: StartGameData{Turn: int(g.turn), Stones: g.stones}}
 	g.record = append(g.record, evt)
-	return evt
+}
+
+func (g *Game) GetPlayerStartGameEvent(uuid string) Event {
+	id := g.idMap[uuid]
+	return Event{
+		Type: PlayerStartGame, 
+		Data: PlayerStartGameData{
+			Turn: g.turn, 
+			Player: g.players[id], 
+			Stones: g.stones, 
+			Size: Size{boardWidth, boardHeight},
+		},
+	}
 }
 
 func (g *Game) placeStones() {
-	// TODO: add stones placement game logic for better gameplay
-
 	// white player stones
 	for i := range maxStones {
 		g.stones = append(g.stones,
@@ -95,70 +107,6 @@ func (g *Game) placeStones() {
 
 func (g *Game) GetStones() []Stone {
 	return g.stones
-}
-
-// GetPlayerStones returns stones of the player with the given playerID
-// It sorts stones by x coordinate
-func (g *Game) getPlayerStones(id playerID) []Stone {
-	var stones []Stone
-	for _, stone := range g.stones {
-		if stone.StoneType == g.players[id].movableStone && !stone.IsOut {
-			stones = append(stones, stone)
-		}
-	}
-	sort.Slice(stones, func(i, j int) bool {
-		return stones[i].Position.X < stones[j].Position.X
-	})
-	return stones
-}
-
-func (g *Game) GetSize() (float64, float64) {
-	return boardWidth, boardHeight
-}
-
-func (g *Game) getNextStone(playerID playerID, selectedStoneID int, direction int) (nextStoneID int, err error) {
-	stones := g.getPlayerStones(playerID)
-	if len(stones) == 0 {
-		return selectedStoneID, fmt.Errorf("no stones found")
-	}
-	idx := findIdx(stones, selectedStoneID)
-	if idx == -1 {
-		idx = 0
-	}
-	nextIdx := (idx + direction + len(stones)) % len(stones)
-	return stones[nextIdx].ID, nil
-}
-
-func (g *Game) GetLeftStone(playerID playerID, selectedStoneID int) int {
-	nxt, err := g.getNextStone(playerID, selectedStoneID, -1)
-	if err != nil {
-		return selectedStoneID
-	}
-	return nxt
-}
-
-func (g *Game) GetRightStone(playerID playerID, selectedStoneID int) int {
-	nxt, err := g.getNextStone(playerID, selectedStoneID, 1)
-	if err != nil {
-		return selectedStoneID
-	}
-	return nxt
-}
-func (g *Game) GetCurrentStone(playerID playerID, selectedStoneID int) int {
-	cur, err := g.getNextStone(playerID, selectedStoneID, 0)
-	if err != nil {
-		return selectedStoneID
-	}
-	return cur
-}
-
-func findIdx(stones []Stone, stoneID int) int {
-	for i, stone := range stones {
-		if stone.ID == stoneID {
-			return i
-		}
-	}
-	return -1
 }
 
 type moving struct {
@@ -256,6 +204,7 @@ func (g *Game) ShootStone(shootData ShootData) Event {
 	}
 	initialStones := make([]Stone, len(g.stones))
 	copy(initialStones, g.stones)
+
 	animations := []StoneAnimation{}
 	movings := []moving{
 		{id: striking.ID, startPos: striking.Position, velocity: shootData.Velocity,
@@ -273,7 +222,7 @@ func (g *Game) ShootStone(shootData ShootData) Event {
 			maxStep = anim.EndStep
 		}
 	}
-	evt := Event{Type: StoneAnimationsEvent, Data: StoneAnimationsData{
+	evt := Event{Type: StoneAnimations, Data: StoneAnimationsData{
 		InitialStones: initialStones,
 		Animations:    animations,
 		MaxStep:       maxStep,

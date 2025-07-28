@@ -39,13 +39,13 @@ func (s *Server) ListenMatchWaiting() {
 					break
 				}
 			}
+			slog.Info("Matched!", "user1", w1.userID, "user2", w2.userID)
 			sessionID := uuid.New() // random uuid
 			w1.replyCh <- matchInfo{opponent: w2.userID, sessionID: sessionID}
 			w2.replyCh <- matchInfo{opponent: w1.userID, sessionID: sessionID}
 			s.createGameSession(sessionID)
 			// clear waiting user
 			delete(buf, w2.userID)
-			slog.Info("Matched!", "user1", w1.userID, "user2", w2.userID)
 		case userID := <-s.removeQueue:
 			delete(buf, userID)
 			slog.Info("Removed user from waiting queue", "userID", userID)
@@ -57,14 +57,12 @@ func (s *Server) ListenMatchWaiting() {
 func (s *Server) createGameSession(sessionID uuid.UUID) {
 	session := ws.NewGameSession()
 	s.sessions[sessionID] = session
-	slog.Debug("Start listening the game session", "sessionID", sessionID)
 	session.Listen()
 }
 
 func (s *Server) registerClientToSession(sessionID, clientID uuid.UUID, conn *websocket.Conn) {
 	client := ws.NewClient(clientID, conn, s.sessions[sessionID])
 	s.sessions[sessionID].Register(client)
-	slog.Debug("Start listening the client", "clientID", clientID)
 	client.Listen()
 }
 

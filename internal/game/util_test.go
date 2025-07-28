@@ -85,6 +85,7 @@ func TestIsCollision(t *testing.T) {
 	require.True(t, isCollision(stone1, stone2))
 }
 
+
 func TestNormalizeVector(t *testing.T) {
 	// case1 : different position
 	p1 := Vector2{X: 3, Y: 4}
@@ -132,6 +133,14 @@ func TestDotProduct(t *testing.T) {
 	require.Equal(t, 11.0, dotProduct(velocity1, velocity2))
 }
 
+
+func TestBlendVector(t *testing.T) {
+	v1 := Vector2{X: 1, Y: 0}
+	v2 := Vector2{X: 0, Y: 1}
+	require.Equal(t, Vector2{X: 0.5, Y: 0.5}, BlendVector(v1, v2, 0.5))
+	require.Equal(t, Vector2{X: 0, Y: 1}, BlendVector(v1, v2, 0))
+	require.Equal(t, Vector2{X: 1, Y: 0}, BlendVector(v1, v2, 1))
+}
 func TestConvertToVelocity(t *testing.T) {
 	// Test 1: 0 power
 	require.Equal(t, Vector2{X: 0, Y: 0}, ConvertToVelocity(0, 0))
@@ -146,12 +155,4 @@ func TestConvertToVelocity(t *testing.T) {
 	// Test 3: Random Cases
 	require.Equal(t, 1.0, ConvertToVelocity(30, 2).X)
 	require.Equal(t, -1.0, ConvertToVelocity(60, 2).Y)
-}
-
-func TestBlendVector(t *testing.T) {
-	v1 := Vector2{X: 1, Y: 0}
-	v2 := Vector2{X: 0, Y: 1}
-	require.Equal(t, Vector2{X: 0.5, Y: 0.5}, BlendVector(v1, v2, 0.5))
-	require.Equal(t, Vector2{X: 0, Y: 1}, BlendVector(v1, v2, 0))
-	require.Equal(t, Vector2{X: 1, Y: 0}, BlendVector(v1, v2, 1))
 }

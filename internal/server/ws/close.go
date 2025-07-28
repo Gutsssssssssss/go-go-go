@@ -10,23 +10,18 @@ func SendCloseWithError(conn *websocket.Conn, msg string, err error) {
 	if err != nil {
 		slog.Error(msg, "err", err)
 	}
-	err = conn.WriteMessage(
+	_ = conn.WriteMessage(
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, msg),
 	)
-	if err != nil {
-		slog.Error("sending close message", "err", err)
-	}
 	_ = conn.Close()
 }
 
 func SendCloseMessage(conn *websocket.Conn, msg string) {
-	err := conn.WriteMessage(
+	slog.Debug(msg)
+	_ = conn.WriteMessage(
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, msg),
 	)
-	if err != nil {
-		slog.Error("sending close message", "err", err)
-	}
 	_ = conn.Close()
 }

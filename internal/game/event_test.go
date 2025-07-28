@@ -10,7 +10,7 @@ import (
 func TestGameEventUnmarshal(t *testing.T) {
 	t.Run("game start", func(t *testing.T) {
 		evt := Event{
-			Type: StartGameEvent,
+			Type: StartGame,
 			Data: StartGameData{Turn: 0},
 		}
 		jsonData, err := json.Marshal(evt)

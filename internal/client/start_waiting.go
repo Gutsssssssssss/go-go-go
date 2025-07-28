@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/url"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
+	game "github.com/yanmoyy/go-go-go/internal/client/game"
 )
 
-func (c *Client) StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, error) {
+// StartWaiting starts waiting for a match and returns the connection of the game session
+func StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, error) {
+	c := getClient()
 	idString := id.String()
 	// web socket
 	u := url.URL{Scheme: "ws", Host: c.wsHost, Path: "/ws/waiting/" + idString}
@@ -21,35 +23,31 @@ func (c *Client) StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, err
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("dial: %w", err)
 	}
-	defer func() { _ = conn.Close() }()
 
 	done := make(chan struct{})
 	errCh := make(chan error)
 	msgCh := make(chan api.QueueMessage)
 
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			_, message, err := conn.ReadMessage()
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+				close(done)
 				return
-			default:
-				_, message, err := conn.ReadMessage()
-				if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-					close(done)
-					return
-				}
-				if err != nil {
-					errCh <- err
-					return
-				}
-				slog.Debug("recv", "message", string(message))
-				var msg api.QueueMessage
-				if err := json.Unmarshal(message, &msg); err != nil {
-					errCh <- fmt.Errorf("unmarshal: %w", err)
-					return
-				}
-				msgCh <- msg
 			}
+			if err != nil {
+				errCh <- err
+				return
+			}
+			var msg api.QueueMessage
+			if err := json.Unmarshal(message, &msg); err != nil {
+				errCh <- fmt.Errorf("unmarshal: %w", err)
+				return
+			}
+			msgCh <- msg
 		}
 	}()
 	for {
@@ -59,6 +57,7 @@ func (c *Client) StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, err
 		case msg := <-msgCh:
 			switch msg.Message {
 			case api.QueueMessageMatchSuccess:
+				c.game = game.NewGameClient(conn)
 				return msg.Data.Opponent, nil
 			case api.QueueMessageMatchFailed:
 				return uuid.Nil, nil

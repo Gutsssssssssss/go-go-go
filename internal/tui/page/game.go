@@ -2,6 +2,7 @@ package page
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -9,6 +10,8 @@ import (
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/yanmoyy/go-go-go/internal/client"
+	gameClient "github.com/yanmoyy/go-go-go/internal/client/game"
 	"github.com/yanmoyy/go-go-go/internal/game"
 	"github.com/yanmoyy/go-go-go/internal/tui/color"
 	"github.com/yanmoyy/go-go-go/internal/tui/keys"
@@ -24,11 +27,17 @@ const GamePage PageID = "game"
 type gamePage struct {
 	page
 	help            help.Model
-	game            *game.Game
+
+	// game Client
+	client          *gameClient.GameClient
+	done            chan struct{}
+
 	selectedStoneID int
 	status          gameView.ControlStatus
-	degrees         gameView.Degrees
-	power           gameView.Power
+	degrees         int
+	power           int
+
+	// progress bar
 	progressOn      progress.Model
 	progressOff     progress.Model
 
@@ -41,14 +50,17 @@ type gamePage struct {
 func NewGamePage() tea.Model {
 	p := &gamePage{}
 	p.help = help.New()
-	p.game = game.NewGame()
-	p.setProgresses()
 	return p
 }
+
 func (p *gamePage) Init() tea.Cmd {
-	p.game.AddPlayer("player1")
-	p.game.AddPlayer("player2")
-	p.game.StartGame()
+	p.setProgresses()
+	p.client = client.GetGameClient()
+	p.done = make(chan struct{})
+	err := p.client.StartGame(p.done)
+	if err != nil {
+		slog.Error("failed to start game", "err", err)
+	}
 	p.selectedStoneID = 0
 	p.status = gameView.ControlSelectStone
 	return nil
@@ -64,17 +76,18 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch {
 		case key.Matches(msg, keys.Quit()):
+			close(p.done)
 			return p, cmd(PagePopMsg{})
 		case key.Matches(msg, keys.Up()):
 			if p.status == gameView.ControlCharging {
-				p.power += gameView.Power(1)
+				p.power += 1
 				if p.power > gameView.MaxPower {
 					p.power = gameView.MaxPower
 				}
 			}
 		case key.Matches(msg, keys.Down()):
 			if p.status == gameView.ControlCharging {
-				p.power -= gameView.Power(1)
+				p.power -= 1
 				if p.power < gameView.MinPower {
 					p.power = gameView.MinPower
 				}
@@ -82,7 +95,7 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Left()):
 			switch p.status {
 			case gameView.ControlSelectStone:
-				p.selectedStoneID = p.game.GetLeftStone(0, p.selectedStoneID)
+				p.selectedStoneID = p.client.GetLeftStone(p.selectedStoneID)
 			case gameView.ControlDirection:
 				p.degrees = p.degrees - 15
 				if p.degrees < gameView.MinDegrees {
@@ -92,7 +105,7 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Right()):
 			switch p.status {
 			case gameView.ControlSelectStone:
-				p.selectedStoneID = p.game.GetRightStone(0, p.selectedStoneID)
+				p.selectedStoneID = p.client.GetRightStone(p.selectedStoneID)
 			case gameView.ControlDirection:
 				p.degrees = p.degrees + 15
 				if p.degrees > gameView.MaxDegrees {
@@ -100,6 +113,10 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		case key.Matches(msg, keys.Enter()):
+			if !p.client.IsPlayerTurn() {
+				slog.Info("not player turn")
+				return p, nil
+			}
 			switch p.status {
 			case gameView.ControlSelectStone:
 				p.status = gameView.ControlDirection
@@ -107,15 +124,15 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				p.status = gameView.ControlCharging
 			case gameView.ControlCharging:
 				// TODO: shoot stone
-				velocity := game.ConvertToVelocity(float64(p.degrees), float64(p.power))
-				evt := p.game.ShootStone(
-					game.ShootData{
-						PlayerID: 0,
-						StoneID:  p.selectedStoneID,
-						Velocity: velocity,
-					},
+				err := p.client.ShootStone(
+					p.selectedStoneID,
+					p.degrees,
+					p.power,
 				)
-				return p.startAnimation(evt)
+				if err != nil {
+					slog.Error("failed to shoot stone", "err", err)
+					// TODO: something wrong handle
+				}
 			}
 		}
 	case tickMsg:
@@ -128,6 +145,9 @@ type tickMsg struct{}
 
 func (p *gamePage) View() string {
 	if p.window.width == 0 || p.window.height == 0 {
+		return ""
+	}
+	if p.client == nil {
 		return ""
 	}
 	t := theme.GetTheme()
@@ -190,17 +210,15 @@ func (p *gamePage) View() string {
 						BorderColor: getColor(p.status, gameView.ControlSelectStone),
 					},
 					gameView.View(
-						p.game,
 						gameView.Props{
 							Width:            boardWidth - 4,
 							Height:           boardHeight - 4,
-							AnimationsData:   p.animationData,
+							GameData: p.client.GetGameData(),
 							CurAnimationStep: p.currentStep,
 							ControlData: gameView.ControlData{
 								Status:          p.status,
 								SelectedStoneID: p.selectedStoneID,
-								Degrees:         p.degrees,
-								Power:           gameView.Power(0),
+								Degrees:         gameView.Degrees(p.degrees),
 							},
 						}),
 				),
@@ -261,7 +279,7 @@ func (p *gamePage) startAnimation(evt game.Event) (tea.Model, tea.Cmd) {
 			return tickMsg{}
 		})
 	}
-	p.selectedStoneID = p.game.GetCurrentStone(0, p.selectedStoneID)
+	p.selectedStoneID = p.client.GetCurrentStone(p.selectedStoneID)
 	p.status = gameView.ControlSelectStone // Fallback if no animation
 	return p, nil
 }

@@ -1,6 +1,7 @@
 package game
 
 import (
+	gameClient "github.com/yanmoyy/go-go-go/internal/client/game"
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
@@ -12,14 +13,17 @@ type scale struct {
 type Props struct {
 	Width            int
 	Height           int
+	GameData         gameClient.GameData
 	ControlData      ControlData
+
+	// Animation
 	AnimationsData   *game.StoneAnimationsData
 	CurAnimationStep int
 }
 
-func View(g *game.Game, props Props) string {
+func View(props Props) string {
 	// Get the size of the game board
-	gameW, gameH := g.GetSize()
+	gameW, gameH := props.GameData.Size.Width, props.GameData.Size.Height
 
 	// Scaling factors for 100x100 board to TUI grid
 	scale := scale{width: float64(props.Width) / gameW, height: float64(props.Height) / gameH}
@@ -38,10 +42,11 @@ func View(g *game.Game, props Props) string {
 		return grid.String()
 	}
 
-	stones := g.GetStones()
-	grid.drawStones(stones, scale, props.ControlData)
+	// All stones
+	grid.drawStones(props.GameData.Stones, scale, props.ControlData)
 
-	selectedStone := stones[props.ControlData.SelectedStoneID]
+	// Indicator
+	selectedStone := props.GameData.Stones[props.ControlData.SelectedStoneID]
 	grid.drawIndicator(selectedStone, scale, props.ControlData)
 
 	return grid.String()

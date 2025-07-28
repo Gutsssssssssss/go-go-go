@@ -16,12 +16,10 @@ const (
 	MinDegrees = -180
 )
 
-type Power int
 type Degrees int // degrees are starting from 0 to 360 (clockwise, from upper (↑))
 
 type ControlData struct {
 	Status          ControlStatus
 	SelectedStoneID int
 	Degrees         Degrees
-	Power           Power
 }

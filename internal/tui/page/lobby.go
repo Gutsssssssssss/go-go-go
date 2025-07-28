@@ -38,7 +38,6 @@ type lobbyPage struct {
 	spinner  spinner.Model
 	choices  []string
 	selected int
-	client   *client.Client
 	data     struct {
 		id         uuid.UUID
 		opponentID uuid.UUID
@@ -59,12 +58,11 @@ func NewLobbyPage() tea.Model {
 		selected: 0,
 	}
 	p.help = help.New()
-	p.client = client.DefaultClient()
 	return p
 }
 
 func (p *lobbyPage) fetchUserID() {
-	id, err := p.client.GetID()
+	id, err := client.GetID()
 	if err != nil {
 		p.status = lobbyFailedGetID
 		return
@@ -91,7 +89,7 @@ func (p *lobbyPage) startWaiting() tea.Cmd {
 	return tea.Batch(
 		func() tea.Msg {
 			defer cancel()
-			opponentID, err := p.client.StartWaiting(p.data.id, ctx)
+			opponentID, err := client.StartWaiting(p.data.id, ctx)
 			if err != nil {
 				slog.Error("Connection Error", "err", err)
 				p.status = lobbyConnectionErr

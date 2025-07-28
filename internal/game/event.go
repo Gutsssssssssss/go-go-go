@@ -5,23 +5,28 @@ import (
 	"fmt"
 )
 
-type EventType int
+type DataType int
 
 const (
-	StartGameEvent EventType = iota
-	ShootEvent
-	StoneAnimationsEvent
-	GameOverEvent
+	StartGame DataType = iota
+	PlayerStartGame
+	Shoot
+	StoneAnimations
+	GameOver
 )
 
 type Event struct {
-	Type EventType `json:"type"`
+	Type DataType `json:"type"`
 	Data any       `json:"data"`
+}
+
+func (e Event) String() string {
+	return fmt.Sprintf("Event{Type: %d, Data: %+v}", e.Type, e.Data)
 }
 
 func (e *Event) UnmarshalJSON(data []byte) error {
 	type tempEvent struct {
-		Type EventType       `json:"type"`
+		Type DataType       `json:"type"`
 		Data json.RawMessage `json:"data"`
 	}
 
@@ -41,21 +46,25 @@ func (e *Event) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func unmarshalData(t EventType, data []byte) (any, error) {
+func unmarshalData(t DataType, data []byte) (any, error) {
 	switch t {
-	case StartGameEvent:
+	case StartGame:
 		var d StartGameData
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case ShootEvent:
+	case PlayerStartGame:
+		var d PlayerStartGameData
+		err := json.Unmarshal(data, &d)
+		return d, err
+	case Shoot:
 		var d ShootData
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case StoneAnimationsEvent:
+	case StoneAnimations:
 		var d StoneAnimationsData
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case GameOverEvent:
+	case GameOver:
 		var d GameOverData
 		err := json.Unmarshal(data, &d)
 		return d, err
@@ -63,10 +72,31 @@ func unmarshalData(t EventType, data []byte) (any, error) {
 	return nil, fmt.Errorf("unknown event type: %d", t)
 }
 
-func (e Event) GetAnimationsData() StoneAnimationsData {
-	switch e.Type {
-	case StoneAnimationsEvent:
-		return e.Data.(StoneAnimationsData)
-	}
-	return StoneAnimationsData{}
+// Data for client
+type StartGameData struct {
+	Turn int `json:"turn"`
+	Stones []Stone `json:"stones"`
+}
+
+type PlayerStartGameData struct {
+	Turn playerID `json:"turn"`
+	Player Player `json:"player"`
+	Stones []Stone `json:"stones"`
+	Size  `json:"size"`
+}
+
+type ShootData struct {
+	PlayerID int     `json:"playerID"`
+	StoneID  int     `json:"stoneID"`
+	Velocity Vector2 `json:"velocity"`
+}
+
+type StoneAnimationsData struct {
+	InitialStones []Stone          `json:"initialStones"`
+	Animations    []StoneAnimation `json:"animations"`
+	MaxStep       int              `json:"maxStep"`
+}
+
+type GameOverData struct {
+	WinnerID int `json:"winnerID"`
 }
