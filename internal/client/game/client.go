@@ -1,6 +1,8 @@
 package game
 
 import (
+	"log/slog"
+
 	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
 	"github.com/yanmoyy/go-go-go/internal/game"
@@ -8,6 +10,7 @@ import (
 
 type GameClient struct {
 	conn        *websocket.Conn
+	done        chan struct{}
 	gameData    *GameData
 	AnimationCh chan *game.StoneAnimationsData
 	responseCh  chan api.Response
@@ -27,4 +30,18 @@ func (c *GameClient) IsPlayerTurn() bool {
 
 func (c *GameClient) GetGameData() *GameData {
 	return c.gameData
+}
+
+func (c *GameClient) Close() {
+	_ = c.conn.Close()
+	if c.done != nil {
+		close(c.done)
+	}
+	if c.responseCh != nil {
+		close(c.responseCh)
+	}
+	if c.AnimationCh != nil {
+		close(c.AnimationCh)
+	}
+	slog.Info("game client closed")
 }

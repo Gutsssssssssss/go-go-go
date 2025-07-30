@@ -9,26 +9,27 @@ import (
 type Client struct {
 	baseURL string
 	wsHost  string
-	http *http.Client // http client
-	game *game.GameClient // game client
+	http    *http.Client     // http client
+	game    *game.GameClient // game client
 }
 
 func newClient(baseURL string, wsHost string) *Client {
 	return &Client{
 		baseURL: baseURL,
 		wsHost:  wsHost,
-		http:  http.DefaultClient,
+		http:    http.DefaultClient,
 	}
 }
 
 var singleton *Client
+
 // singleton pattern
 func getClient() *Client {
 	if singleton != nil {
 		return singleton
 	}
 	singleton = newClient("http://localhost:8080", "localhost:8080")
-	return singleton 
+	return singleton
 }
 
 func GetGameClient() *game.GameClient {

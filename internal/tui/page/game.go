@@ -55,8 +55,8 @@ func NewGamePage() tea.Model {
 
 func (p *gamePage) Init() tea.Cmd {
 	p.setProgresses()
-	p.client = client.GetGameClient()
 	p.done = make(chan struct{})
+	p.client = client.GetGameClient()
 	err := p.client.StartListenConn(p.done)
 	if err != nil {
 		slog.Error("failed to start game", "err", err)
@@ -81,7 +81,7 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch p.status {
 			case gameView.ControlSelectStone:
 				// TODO: quit dialog
-				close(p.done)
+				p.client.Close()
 				return p, cmd(PagePopMsg{})
 			case gameView.ControlDirection:
 				p.status = gameView.ControlSelectStone
@@ -137,10 +137,12 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case animationMsg:
+		var cmds []tea.Cmd
 		if msg.data != nil {
-			return p.startAnimation(msg.data)
+			cmds = append(cmds, p.startAnimation(msg.data))
 		}
-		return p, p.ListenAnimation()
+		cmds = append(cmds, p.ListenAnimation())
+		return p, tea.Batch(cmds...)
 	case tickMsg:
 		return p.updateAnimation()
 	}
@@ -298,19 +300,18 @@ func (p *gamePage) ListenAnimation() tea.Cmd {
 	return func() tea.Msg {
 		data, ok := <-p.client.AnimationCh
 		if !ok {
-			slog.Info("AnimationCh closed")
 			return nil
 		}
 		return animationMsg{data: data}
 	}
 }
 
-func (p *gamePage) startAnimation(data *game.StoneAnimationsData) (tea.Model, tea.Cmd) {
+func (p *gamePage) startAnimation(data *game.StoneAnimationsData) tea.Cmd {
 	p.animationData = data
 	p.currentStep = 0
 	p.isAnimating = true
 	// Start animation with a tick
-	return p, tea.Tick(time.Millisecond*10, func(time.Time) tea.Msg {
+	return tea.Tick(time.Millisecond*10, func(time.Time) tea.Msg {
 		return tickMsg{}
 	})
 }

@@ -20,9 +20,10 @@ func (c *GameClient) StartListenConn(done chan struct{}) error {
 	if c.conn == nil {
 		return fmt.Errorf("no connection")
 	}
+	c.done = done
 	go func() {
 		select {
-		case <-done:
+		case <-c.done:
 			return
 		default:
 			for {
