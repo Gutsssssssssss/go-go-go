@@ -86,12 +86,14 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 	select {
 	case info := <-replyCh:
 		err := conn.WriteJSON(
-			api.QueueMessage{
-				Message: api.QueueMessageMatchSuccess,
-				Data: &api.QueueMessageData{
+			api.Message{
+				Type: api.MatchMessage,
+				Data: api.MatchData{
+					Status:   api.MatchSuccess,
 					Opponent: info.opponent,
 				},
-			})
+			},
+		)
 		if err != nil {
 			ws.SendCloseWithError(conn, "couldn't send JSON", err)
 			return
@@ -102,7 +104,13 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 		s.removeQueue <- userID
 		close(replyCh)
 		err := conn.WriteJSON(
-			api.QueueMessage{Message: api.QueueMessageMatchFailed},
+			api.Message{
+				Type: api.MatchMessage,
+				Data: api.MatchData{
+					Status:   api.MatchFailed,
+					Opponent: uuid.Nil,
+				},
+			},
 		)
 		if err != nil {
 			ws.SendCloseWithError(conn, "couldn't send JSON", err)

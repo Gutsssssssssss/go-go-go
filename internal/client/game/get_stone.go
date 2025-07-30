@@ -7,8 +7,6 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
-
-
 func (c *GameClient) GetLeftStone(selectedStoneID int) int {
 	nxt, err := c.getNextStone(selectedStoneID, -1)
 	if err != nil {
@@ -33,7 +31,6 @@ func (c *GameClient) GetCurrentStone(selectedStoneID int) int {
 	return cur
 }
 
-
 // GetPlayerStones returns stones of the player with the given playerID
 // It sorts stones by x coordinate
 func getFilteredStones(stones []game.Stone, stoneType game.StoneType) []game.Stone {
@@ -50,7 +47,10 @@ func getFilteredStones(stones []game.Stone, stoneType game.StoneType) []game.Sto
 }
 
 func (c *GameClient) getNextStone(selectedStoneID int, direction int) (nextStoneID int, err error) {
-	stones := getFilteredStones(c.data.Stones, c.data.Player.StoneType)
+	if c.gameData == nil {
+		return selectedStoneID, fmt.Errorf("no game data")
+	}
+	stones := getFilteredStones(c.gameData.Stones, c.gameData.Player.StoneType)
 	if len(stones) == 0 {
 		return selectedStoneID, fmt.Errorf("no stones found")
 	}

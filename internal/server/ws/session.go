@@ -2,9 +2,11 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
+	"github.com/yanmoyy/go-go-go/internal/api"
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
@@ -44,7 +46,7 @@ func (s *Session) Listen() {
 		for {
 			select {
 			case client := <-s.registerCh:
-				s.clients[client.id] = client 
+				s.clients[client.id] = client
 				slog.Info("Session: Registered", "clientID", client.id)
 				needStart, err := s.game.AddPlayer(client.id.String())
 				if err != nil {
@@ -54,14 +56,17 @@ func (s *Session) Listen() {
 					s.game.StartGame()
 					for id := range s.clients {
 						evt := s.game.GetPlayerStartGameEvent(id.String())
-						s.sendClientWithJSON(id, evt)
+						s.sendGameEvent(id, evt)
 					}
 				}
 			case client := <-s.unregisterCh:
 				delete(s.clients, client.id)
 				slog.Info("Session: Unregistered", "clientID", client.id)
 			case msg := <-s.messageCh:
-				s.handleMessage(msg)
+				err := s.handleMessage(msg)
+				if err != nil {
+					slog.Error("handleMessage", "err", err)
+				}
 			}
 		}
 	}()
@@ -82,14 +87,12 @@ func (s *Session) Send(msg message) {
 	s.messageCh <- msg
 }
 
-func (s *Session) broadcastWithJSON(data any) {
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		slog.Error("failed to marshal data", "err", err)
-		return
-	}
-	for _, client := range s.clients {
-		client.messageCh <- jsonData
+func (s *Session) broadcastGameEvent(evt game.Event) {
+	for id := range s.clients {
+		s.sendClientWithJSON(id, api.Message{
+			Type: api.GameEventMessage,
+			Data: evt,
+		})
 	}
 }
 
@@ -103,19 +106,75 @@ func (s *Session) sendClientWithJSON(clientID uuid.UUID, data any) {
 	client.messageCh <- jsonData
 }
 
+func (s *Session) sendGameEvent(clientID uuid.UUID, evt game.Event) {
+	s.sendClientWithJSON(clientID, api.Message{
+		Type: api.GameEventMessage,
+		Data: evt,
+	})
+}
+
+func (s *Session) sendResponse(clientID uuid.UUID, id string, status api.ResponseStatus, message string) {
+	s.sendClientWithJSON(clientID,
+		api.Message{
+			Type: api.ResponseMessage,
+			Data: api.Response{
+				ID:      id,
+				Status:  status,
+				Message: message,
+			},
+		},
+	)
+}
+
 // handleMessage handles a message from a client
-func (s *Session) handleMessage(msg message) {
-	t, n, err := getMessageType(msg.payload)
+func (s *Session) handleMessage(msg message) error {
+	var m api.Message
+	err := json.Unmarshal(msg.payload, &m)
 	if err != nil {
-		slog.Error("failed to get message type", "err", err)
-		return
+		return fmt.Errorf("failed to unmarshal message: %w", err)
 	}
-	switch t {
-	case GameEvent:
-		slog.Info("GameEvent", "message", string(msg.payload[n:]))
-		// TODO: handle game events
-	case ChatEvent:
-		slog.Info("ChatEvent", "message", string(msg.payload[n:]))
-		// TODO: handle chat events
+	switch m.Type {
+	case api.RequestMessage:
+		err = s.handleRequest(msg.clientID, m.Data.(api.Request))
+		if err != nil {
+			return fmt.Errorf("handleRequest: %w", err)
+		}
+	case api.ChatMessage:
+		slog.Info("ChatEvent", "message", string(msg.payload))
 	}
+	return nil
+}
+
+func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
+	switch req.Type {
+	case api.GameEventRequest:
+		var evt game.Event
+		if err := json.Unmarshal(req.Data, &evt); err != nil {
+			return fmt.Errorf("failed to unmarshal event: %w", err)
+		}
+		nxtEvt, err := s.handleGameEvent(evt)
+		if err != nil {
+			s.sendResponse(clientID, req.ID, api.ResponseFailed, "failed to handle game event")
+			return err
+		}
+		s.sendResponse(clientID, req.ID, api.ResponseSuccess, "game event successfully handled")
+		s.broadcastGameEvent(nxtEvt)
+	default:
+		return fmt.Errorf("unknown request type: %s", req.Type)
+	}
+	return nil
+}
+
+// handleGameEvent handles a game event, and returns the next event and whether it needs to be broadcasted
+func (s *Session) handleGameEvent(evt game.Event) (nxt game.Event, err error) {
+	switch evt.Type {
+	case game.Shoot:
+		nxt, err = s.game.ShootStone(evt.Data.(game.ShootData))
+		if err != nil {
+			return game.Event{}, err
+		}
+	default:
+		return game.Event{}, fmt.Errorf("unknown event type: %s", evt.Type)
+	}
+	return nxt, nil
 }

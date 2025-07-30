@@ -26,7 +26,7 @@ func StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, error) {
 
 	done := make(chan struct{})
 	errCh := make(chan error)
-	msgCh := make(chan api.QueueMessage)
+	matchCh := make(chan api.MatchData)
 
 	go func() {
 		select {
@@ -42,27 +42,27 @@ func StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, error) {
 				errCh <- err
 				return
 			}
-			var msg api.QueueMessage
+			var msg api.Message
 			if err := json.Unmarshal(message, &msg); err != nil {
 				errCh <- fmt.Errorf("unmarshal: %w", err)
 				return
 			}
-			msgCh <- msg
+			matchCh <- msg.Data.(api.MatchData)
 		}
 	}()
 	for {
 		select {
 		case err := <-errCh:
 			return uuid.Nil, fmt.Errorf("read: %w", err)
-		case msg := <-msgCh:
-			switch msg.Message {
-			case api.QueueMessageMatchSuccess:
+		case match := <-matchCh:
+			switch match.Status {
+			case api.MatchSuccess:
 				c.game = game.NewGameClient(conn)
-				return msg.Data.Opponent, nil
-			case api.QueueMessageMatchFailed:
+				return match.Opponent, nil
+			case api.MatchFailed:
 				return uuid.Nil, nil
 			default:
-				return uuid.Nil, fmt.Errorf("unknown message: %s", msg.Message)
+				return uuid.Nil, fmt.Errorf("unknown status: %s", match.Status)
 			}
 		case <-ctx.Done():
 			return uuid.Nil, nil

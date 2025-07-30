@@ -26,11 +26,11 @@ const GamePage PageID = "game"
 
 type gamePage struct {
 	page
-	help            help.Model
+	help help.Model
 
 	// game Client
-	client          *gameClient.GameClient
-	done            chan struct{}
+	client *gameClient.GameClient
+	done   chan struct{}
 
 	selectedStoneID int
 	status          gameView.ControlStatus
@@ -38,8 +38,8 @@ type gamePage struct {
 	power           int
 
 	// progress bar
-	progressOn      progress.Model
-	progressOff     progress.Model
+	progressOn  progress.Model
+	progressOff progress.Model
 
 	// Animation
 	animationData *game.StoneAnimationsData
@@ -57,13 +57,15 @@ func (p *gamePage) Init() tea.Cmd {
 	p.setProgresses()
 	p.client = client.GetGameClient()
 	p.done = make(chan struct{})
-	err := p.client.StartGame(p.done)
+	err := p.client.StartListenConn(p.done)
 	if err != nil {
 		slog.Error("failed to start game", "err", err)
 	}
 	p.selectedStoneID = 0
 	p.status = gameView.ControlSelectStone
-	return nil
+
+	// listen for animation
+	return p.ListenAnimation()
 }
 
 func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -76,8 +78,16 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch {
 		case key.Matches(msg, keys.Quit()):
-			close(p.done)
-			return p, cmd(PagePopMsg{})
+			switch p.status {
+			case gameView.ControlSelectStone:
+				// TODO: quit dialog
+				close(p.done)
+				return p, cmd(PagePopMsg{})
+			case gameView.ControlDirection:
+				p.status = gameView.ControlSelectStone
+			case gameView.ControlCharging:
+				p.status = gameView.ControlDirection
+			}
 		case key.Matches(msg, keys.Up()):
 			if p.status == gameView.ControlCharging {
 				p.power += 1
@@ -123,18 +133,14 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case gameView.ControlDirection:
 				p.status = gameView.ControlCharging
 			case gameView.ControlCharging:
-				// TODO: shoot stone
-				err := p.client.ShootStone(
-					p.selectedStoneID,
-					p.degrees,
-					p.power,
-				)
-				if err != nil {
-					slog.Error("failed to shoot stone", "err", err)
-					// TODO: something wrong handle
-				}
+				p.shootStone()
 			}
 		}
+	case animationMsg:
+		if msg.data != nil {
+			return p.startAnimation(msg.data)
+		}
+		return p, p.ListenAnimation()
 	case tickMsg:
 		return p.updateAnimation()
 	}
@@ -213,14 +219,16 @@ func (p *gamePage) View() string {
 						gameView.Props{
 							Width:            boardWidth - 4,
 							Height:           boardHeight - 4,
-							GameData: p.client.GetGameData(),
+							GameData:         p.client.GetGameData(),
+							AnimationsData:   p.animationData,
 							CurAnimationStep: p.currentStep,
 							ControlData: gameView.ControlData{
 								Status:          p.status,
 								SelectedStoneID: p.selectedStoneID,
 								Degrees:         gameView.Degrees(p.degrees),
 							},
-						}),
+						},
+					),
 				),
 			),
 			view.Board(
@@ -269,19 +277,42 @@ func (p *gamePage) getProgress(s gameView.ControlStatus, current gameView.Contro
 	return p.progressOff
 }
 
-func (p *gamePage) startAnimation(evt game.Event) (tea.Model, tea.Cmd) {
-	if data, ok := evt.Data.(game.StoneAnimationsData); ok {
-		p.animationData = &data
-		p.currentStep = 0
-		p.isAnimating = true
-		// Start animation with a tick
-		return p, tea.Tick(time.Millisecond*10, func(time.Time) tea.Msg {
-			return tickMsg{}
-		})
+func (p *gamePage) shootStone() {
+	err := p.client.ShootStone(
+		p.selectedStoneID,
+		p.degrees,
+		p.power,
+	)
+	if err != nil {
+		slog.Error("failed to shoot stone", "err", err)
+		p.selectedStoneID = p.client.GetCurrentStone(p.selectedStoneID)
+		p.status = gameView.ControlSelectStone // Fallback if no animation
 	}
-	p.selectedStoneID = p.client.GetCurrentStone(p.selectedStoneID)
-	p.status = gameView.ControlSelectStone // Fallback if no animation
-	return p, nil
+}
+
+type animationMsg struct {
+	data *game.StoneAnimationsData
+}
+
+func (p *gamePage) ListenAnimation() tea.Cmd {
+	return func() tea.Msg {
+		data, ok := <-p.client.AnimationCh
+		if !ok {
+			slog.Info("AnimationCh closed")
+			return nil
+		}
+		return animationMsg{data: data}
+	}
+}
+
+func (p *gamePage) startAnimation(data *game.StoneAnimationsData) (tea.Model, tea.Cmd) {
+	p.animationData = data
+	p.currentStep = 0
+	p.isAnimating = true
+	// Start animation with a tick
+	return p, tea.Tick(time.Millisecond*10, func(time.Time) tea.Msg {
+		return tickMsg{}
+	})
 }
 
 func (p *gamePage) updateAnimation() (tea.Model, tea.Cmd) {

@@ -66,7 +66,7 @@ func TestShootStone(t *testing.T) {
 		{ID: 0, Position: Vector2{X: 0, Y: 0}, Radius: 1},
 		{ID: 1, Position: Vector2{X: 1, Y: 0}, Radius: 1},
 	}
-	evt := g.ShootStone(ShootData{PlayerID: 0, StoneID: 0, Velocity: Vector2{X: 1, Y: 0}})
+	evt, _ := g.ShootStone(ShootData{PlayerID: 0, StoneID: 0, Velocity: Vector2{X: 1, Y: 0}})
 	checkIDResult(t, idMap{0: 2, 1: 1}, evt)
 	checkInitialStones(t, []Stone{
 		{ID: 0, Position: Vector2{X: 0, Y: 0}, Radius: 1},
@@ -78,13 +78,13 @@ func TestShootStone(t *testing.T) {
 		{ID: 1, Position: Vector2{X: 3, Y: 0}, Radius: 1},
 		{ID: 2, Position: Vector2{X: 6, Y: 0}, Radius: 1},
 	}
-	evt = g.ShootStone(ShootData{PlayerID: 0, StoneID: 0, Velocity: Vector2{X: 6, Y: 0}})
+	evt, _ = g.ShootStone(ShootData{PlayerID: 0, StoneID: 0, Velocity: Vector2{X: 6, Y: 0}})
 	t.Log(evt)
 	checkIDResult(t, idMap{0: 2, 1: 2, 2: 1}, evt)
-	checkInitialStones(t, []Stone{ 
+	checkInitialStones(t, []Stone{
 		{ID: 0, Position: Vector2{X: 0, Y: 0}, Radius: 1},
 		{ID: 1, Position: Vector2{X: 3, Y: 0}, Radius: 1},
-		{ID: 2, Position: Vector2{X: 6, Y: 0}, Radius: 1}, 
+		{ID: 2, Position: Vector2{X: 6, Y: 0}, Radius: 1},
 	}, evt)
 }
 

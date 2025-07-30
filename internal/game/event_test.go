@@ -23,6 +23,6 @@ func TestGameEventUnmarshal(t *testing.T) {
 
 		data, ok := evt2.Data.(StartGameData)
 		require.True(t, ok)
-		require.Equal(t, playerID(0), data.Turn)
+		require.Equal(t, 0, data.Turn)
 	})
 }

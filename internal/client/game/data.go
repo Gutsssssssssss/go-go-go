@@ -6,8 +6,9 @@ import (
 
 // data for game state
 type GameData struct {
-	Turn int
+	Turn   int
 	Player game.Player
 	Stones []game.Stone // all stones info (position, radius, etc)
-	Size game.Size
+	Size   game.Size
 }
+

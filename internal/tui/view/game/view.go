@@ -11,10 +11,10 @@ type scale struct {
 }
 
 type Props struct {
-	Width            int
-	Height           int
-	GameData         gameClient.GameData
-	ControlData      ControlData
+	Width       int
+	Height      int
+	GameData    *gameClient.GameData
+	ControlData ControlData
 
 	// Animation
 	AnimationsData   *game.StoneAnimationsData
@@ -22,6 +22,9 @@ type Props struct {
 }
 
 func View(props Props) string {
+	if props.GameData == nil || props.GameData.Size.Width == 0 || props.GameData.Size.Height == 0 || len(props.GameData.Stones) == 0 {
+		return ""
+	}
 	// Get the size of the game board
 	gameW, gameH := props.GameData.Size.Width, props.GameData.Size.Height
 

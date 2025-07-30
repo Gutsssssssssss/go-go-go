@@ -7,8 +7,6 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
-
-
 func TestGetFilteredStones(t *testing.T) {
 	stones := []game.Stone{
 		{ID: 0, Position: game.Vector2{X: 0, Y: 0}, StoneType: game.White},
@@ -31,7 +29,7 @@ func TestGetFilteredStones(t *testing.T) {
 func TestGetNextStone(t *testing.T) {
 	// Test 1: getNextStone
 	c := NewGameClient(nil)
-	c.data.Stones = []game.Stone{
+	c.gameData.Stones = []game.Stone{
 		{ID: 0, Position: game.Vector2{X: 1, Y: 0}, StoneType: game.White},
 		{ID: 1, Position: game.Vector2{X: 0, Y: 0}, StoneType: game.White},
 		{ID: 2, Position: game.Vector2{X: 2, Y: 0}, StoneType: game.White},
@@ -43,7 +41,7 @@ func TestGetNextStone(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, nxtID)
 
-	// case 2: not found 
+	// case 2: not found
 	nxtID, err = c.getNextStone(3, -1)
 	require.NoError(t, err)
 	require.Equal(t, 2, nxtID)

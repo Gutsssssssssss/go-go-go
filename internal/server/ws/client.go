@@ -78,10 +78,11 @@ func (c *Client) WritePump() {
 		select {
 		case message, ok := <-c.messageCh:
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			slog.Debug("WritePump", "message", string(message))
 			if !ok {
 				err := c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
-					SendCloseWithError(c.conn, "The session closed the message channel", err)
+					SendCloseWithError(c.conn, "connection write message failed", err)
 				}
 			}
 			// we have to decide the message form

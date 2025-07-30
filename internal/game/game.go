@@ -42,7 +42,7 @@ func (g *Game) AddPlayer(uuid string) (needStart bool, err error) {
 	}
 	// id is an index of g.players slice
 	id := playerID(len(g.players))
-	g.idMap[uuid] = id 
+	g.idMap[uuid] = id
 	stone := White
 	if len(g.players) == 1 {
 		stone = Black
@@ -55,7 +55,7 @@ func (g *Game) AddPlayer(uuid string) (needStart bool, err error) {
 }
 
 // StartGame starts the game and returns the playerID of the current turn
-func (g *Game) StartGame() { 
+func (g *Game) StartGame() {
 	g.placeStones()
 	g.turn = 0
 	evt := Event{Type: StartGame, Data: StartGameData{Turn: int(g.turn), Stones: g.stones}}
@@ -65,12 +65,12 @@ func (g *Game) StartGame() {
 func (g *Game) GetPlayerStartGameEvent(uuid string) Event {
 	id := g.idMap[uuid]
 	return Event{
-		Type: PlayerStartGame, 
+		Type: PlayerStartGame,
 		Data: PlayerStartGameData{
-			Turn: g.turn, 
-			Player: g.players[id], 
-			Stones: g.stones, 
-			Size: Size{boardWidth, boardHeight},
+			Turn:   g.turn,
+			Player: g.players[id],
+			Stones: g.stones,
+			Size:   Size{boardWidth, boardHeight},
 		},
 	}
 }
@@ -90,7 +90,7 @@ func (g *Game) placeStones() {
 			})
 	}
 
-	//black player stones
+	// black player stones
 	for i := range maxStones {
 		g.stones = append(g.stones,
 			Stone{
@@ -196,19 +196,21 @@ func simulateCollision(movings []moving, stones []Stone, animations []StoneAnima
 	return nextMovings, animations
 }
 
-func (g *Game) ShootStone(shootData ShootData) Event {
+func (g *Game) ShootStone(shootData ShootData) (Event, error) {
 	// TODO: add shootData another field. for better client side abstraction
 	striking := g.stones[shootData.StoneID]
 	if striking.IsOut {
-		return Event{}
+		return Event{}, fmt.Errorf("stone is out of board")
 	}
 	initialStones := make([]Stone, len(g.stones))
 	copy(initialStones, g.stones)
 
 	animations := []StoneAnimation{}
 	movings := []moving{
-		{id: striking.ID, startPos: striking.Position, velocity: shootData.Velocity,
-			startStep: 0, curStep: 0, inCollision: false},
+		{
+			id: striking.ID, startPos: striking.Position, velocity: shootData.Velocity,
+			startStep: 0, curStep: 0, inCollision: false,
+		},
 	}
 	for {
 		movings, animations = simulateCollision(movings, g.stones, animations, 0.1)
@@ -224,11 +226,12 @@ func (g *Game) ShootStone(shootData ShootData) Event {
 	}
 	evt := Event{Type: StoneAnimations, Data: StoneAnimationsData{
 		InitialStones: initialStones,
+		FinalStones:   g.stones,
 		Animations:    animations,
 		MaxStep:       maxStep,
 	}}
 	g.record = append(g.record, evt)
-	return evt
+	return evt, nil
 }
 
 func outOfBoard(pos Vector2) bool {
