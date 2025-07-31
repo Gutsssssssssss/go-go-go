@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -17,9 +16,8 @@ func StartWaiting(id uuid.UUID, ctx context.Context) (uuid.UUID, error) {
 	c := getClient()
 	idString := id.String()
 	// web socket
-	u := url.URL{Scheme: "ws", Host: c.wsHost, Path: "/ws/waiting/" + idString}
-
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	url := c.wsBase + "/ws/waiting/" + idString
+	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("dial: %w", err)
 	}

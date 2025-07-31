@@ -12,7 +12,7 @@ import (
 
 func GetID() (uuid.UUID, error) {
 	c := getClient()
-	url := c.baseURL + "/api/user/id"
+	url := c.httpBase + "/api/user/id"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("new request: %w", err)

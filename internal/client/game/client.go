@@ -14,7 +14,7 @@ type GameClient struct {
 	gameData *GameData
 
 	// channels
-	StartGameCh chan struct{} // check if the game is started
+	GameStateCh chan GameStateChange // check if the game is started
 	AnimationCh chan *game.AnimationData
 	responseCh  chan api.Response
 }
@@ -24,7 +24,7 @@ func NewGameClient(conn *websocket.Conn) *GameClient {
 		conn:        conn,
 		responseCh:  make(chan api.Response),
 		AnimationCh: make(chan *game.AnimationData),
-		StartGameCh: make(chan struct{}),
+		GameStateCh: make(chan GameStateChange),
 		gameData:    &GameData{},
 	}
 }

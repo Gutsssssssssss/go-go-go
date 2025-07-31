@@ -44,8 +44,6 @@ type lobbyPage struct {
 	}
 	status         lobbyStatus
 	findingSeconds int
-	message        string
-	messageTimer   *time.Timer
 }
 
 func NewLobbyPage() tea.Model {
@@ -64,6 +62,7 @@ func NewLobbyPage() tea.Model {
 func (p *lobbyPage) fetchUserID() {
 	id, err := client.GetID()
 	if err != nil {
+		slog.Error("failed to get user ID", "err", err)
 		p.status = lobbyFailedGetID
 		return
 	}
@@ -163,7 +162,7 @@ func (p *lobbyPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case retry:
 				return p, p.startWaiting()
 			case withBot:
-				p.showMessage("Play with Bot")
+				p.showMessage("Play with Bot is not implemented yet")
 			case quit:
 				return p, cmd(PagePopMsg{})
 			}
@@ -180,18 +179,6 @@ func (p *lobbyPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return p, cmd(PageSwitchMsg{ID: GamePage})
 	}
 	return p, nil
-}
-
-func (p *lobbyPage) showMessage(msg string) {
-	p.message = msg
-	if p.messageTimer == nil {
-		p.messageTimer = time.AfterFunc(time.Second*1, func() {
-			p.message = ""
-			p.messageTimer = nil
-		})
-	} else {
-		p.messageTimer.Reset(time.Second * 1)
-	}
 }
 
 func (p *lobbyPage) View() string {
@@ -220,7 +207,7 @@ func (p *lobbyPage) View() string {
 				),
 				layout.Expanded(""),
 				layout.Fixed(
-					p.messageView(),
+					messageView(p.message),
 				),
 				// buttons
 				layout.Fixed(
@@ -244,6 +231,7 @@ func (p *lobbyPage) View() string {
 		}),
 	)
 }
+
 func (p *lobbyPage) isChoiceEnabled(idx int) bool {
 	const (
 		retry int = iota
@@ -304,10 +292,4 @@ func (p *lobbyPage) statusView() string {
 		return "Connection Error"
 	}
 	return ""
-}
-
-func (p *lobbyPage) messageView() string {
-	return lipgloss.NewStyle().
-		Margin(0, 0, 2, 0).
-		Render(p.message)
 }

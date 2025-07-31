@@ -12,9 +12,7 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
-const (
-	responseTimeout = time.Second * 3
-)
+const responseTimeout = time.Second * 3
 
 // start ping pong and message handling
 func (c *GameClient) StartListenConn(done chan struct{}) error {
@@ -74,15 +72,18 @@ func (c *GameClient) handleGameEvent(evt game.Event) error {
 			Stones: data.Stones,
 			Size:   data.Size,
 		}
-		c.StartGameCh <- struct{}{}
+		c.GameStateCh <- GameStateChange{State: GameStateStart}
 	case game.ShootResult:
 		data := evt.Data.(game.ShootResultData)
 		c.AnimationCh <- &data.Animation
 		c.gameData.Stones = data.Stones
 		c.gameData.Turn = data.Turn
 		if data.IsGameOver {
-			c.gameData.GameOver = true
-			c.gameData.Winner = data.Winner
+			c.GameStateCh <- GameStateChange{State: GameStateOver,
+				Data: map[string]string{
+					"winner": data.Winner,
+				},
+			}
 		}
 	default:
 		slog.Error("unknown event type", "type", evt.Type)

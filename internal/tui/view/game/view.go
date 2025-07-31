@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	gameClient "github.com/yanmoyy/go-go-go/internal/client/game"
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
@@ -28,9 +26,6 @@ func View(props Props) string {
 		return ""
 	}
 
-	if props.GameData.GameOver {
-		return fmt.Sprintf("Game Over! Winner: %s", props.GameData.Winner)
-	}
 	// Get the size of the game board
 	gameW, gameH := props.GameData.Size.Width, props.GameData.Size.Height
 

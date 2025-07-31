@@ -47,6 +47,18 @@ type gamePage struct {
 	isAnimating   bool
 }
 
+type animationMsg struct {
+	data *game.AnimationData
+}
+
+type gameStartedMsg struct{}
+
+type gameOverMsg struct {
+	winner string
+}
+
+type tickMsg struct{}
+
 func NewGamePage() tea.Model {
 	p := &gamePage{}
 	p.help = help.New()
@@ -76,17 +88,17 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch {
 		case key.Matches(msg, keys.Quit()):
-			return p.onEscapePressed()
+			return p, p.onEscapePressed()
 		case key.Matches(msg, keys.Up()):
-			return p.onUpPressed()
+			return p, p.onUpPressed()
 		case key.Matches(msg, keys.Down()):
-			return p.onDownPressed()
+			return p, p.onDownPressed()
 		case key.Matches(msg, keys.Left()):
-			return p.onLeftPressed()
+			return p, p.onLeftPressed()
 		case key.Matches(msg, keys.Right()):
-			return p.onRightPressed()
+			return p, p.onRightPressed()
 		case key.Matches(msg, keys.Enter()):
-			return p.onEnterPressed()
+			return p, p.onEnterPressed()
 		}
 	case animationMsg:
 		var cmds []tea.Cmd
@@ -100,11 +112,12 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case gameStartedMsg:
 		p.selectedStoneID = p.client.GetCurrentStone(0)
 		return p, p.ListenClient()
+	case gameOverMsg:
+		// TODO: show winner dialog
+		return p, nil
 	}
 	return p, nil
 }
-
-type tickMsg struct{}
 
 func (p *gamePage) View() string {
 	if p.window.width == 0 || p.window.height == 0 {
@@ -190,12 +203,12 @@ func (p *gamePage) View() string {
 			),
 			view.Board(
 				view.BoardProps{
-					Width:       sideWidth,
+					Width:       sideWidth - 2,
 					Height:      boardHeight,
 					BorderColor: p.getTurnColor(),
 				},
 				layout.Column(
-					"right",
+					"",
 				),
 			),
 		),
@@ -254,12 +267,6 @@ func (p *gamePage) shootStone() {
 	}
 }
 
-type animationMsg struct {
-	data *game.AnimationData
-}
-
-type gameStartedMsg struct{}
-
 func (p *gamePage) ListenClient() tea.Cmd {
 	return func() tea.Msg {
 		select {
@@ -268,8 +275,17 @@ func (p *gamePage) ListenClient() tea.Cmd {
 				return nil
 			}
 			return animationMsg{data: data}
-		case <-p.client.StartGameCh:
-			return gameStartedMsg{}
+		case state, ok := <-p.client.GameStateCh:
+			if !ok {
+				return nil
+			}
+			switch state.State {
+			case gameClient.GameStateStart:
+				return gameStartedMsg{}
+			case gameClient.GameStateOver:
+				return gameOverMsg{winner: state.Data["winner"]}
+			}
+			return nil
 		}
 	}
 }
@@ -305,9 +321,9 @@ func (p *gamePage) updateAnimation() (tea.Model, tea.Cmd) {
 
 // ########## Key Press Handler ##########
 
-func (p *gamePage) onLeftPressed() (tea.Model, tea.Cmd) {
+func (p *gamePage) onLeftPressed() tea.Cmd {
 	if !p.client.IsPlayerTurn() {
-		return p, nil
+		return nil
 	}
 	switch p.status {
 	case gameView.ControlSelectStone:
@@ -318,12 +334,12 @@ func (p *gamePage) onLeftPressed() (tea.Model, tea.Cmd) {
 			p.degrees = gameView.MaxDegrees - 15
 		}
 	}
-	return p, nil
+	return nil
 }
 
-func (p *gamePage) onRightPressed() (tea.Model, tea.Cmd) {
+func (p *gamePage) onRightPressed() tea.Cmd {
 	if !p.client.IsPlayerTurn() {
-		return p, nil
+		return nil
 	}
 	switch p.status {
 	case gameView.ControlSelectStone:
@@ -334,32 +350,32 @@ func (p *gamePage) onRightPressed() (tea.Model, tea.Cmd) {
 			p.degrees = gameView.MinDegrees + 15
 		}
 	}
-	return p, nil
+	return nil
 }
 
-func (p *gamePage) onUpPressed() (tea.Model, tea.Cmd) {
+func (p *gamePage) onUpPressed() tea.Cmd {
 	if p.status == gameView.ControlCharging {
 		p.power += 1
 		if p.power > gameView.MaxPower {
 			p.power = gameView.MaxPower
 		}
 	}
-	return p, nil
+	return nil
 }
 
-func (p *gamePage) onDownPressed() (tea.Model, tea.Cmd) {
+func (p *gamePage) onDownPressed() tea.Cmd {
 	if p.status == gameView.ControlCharging {
 		p.power -= 1
 		if p.power < gameView.MinPower {
 			p.power = gameView.MinPower
 		}
 	}
-	return p, nil
+	return nil
 }
 
-func (p *gamePage) onEnterPressed() (tea.Model, tea.Cmd) {
+func (p *gamePage) onEnterPressed() tea.Cmd {
 	if !p.client.IsPlayerTurn() {
-		return p, nil
+		return nil
 	}
 	switch p.status {
 	case gameView.ControlSelectStone:
@@ -369,19 +385,19 @@ func (p *gamePage) onEnterPressed() (tea.Model, tea.Cmd) {
 	case gameView.ControlCharging:
 		p.shootStone()
 	}
-	return p, nil
+	return nil
 }
 
-func (p *gamePage) onEscapePressed() (tea.Model, tea.Cmd) {
+func (p *gamePage) onEscapePressed() tea.Cmd {
 	switch p.status {
 	case gameView.ControlSelectStone:
 		// TODO: quit dialog
 		p.client.Close()
-		return p, cmd(PagePopMsg{})
+		return cmd(PagePopMsg{})
 	case gameView.ControlDirection:
 		p.status = gameView.ControlSelectStone
 	case gameView.ControlCharging:
 		p.status = gameView.ControlDirection
 	}
-	return p, nil
+	return nil
 }

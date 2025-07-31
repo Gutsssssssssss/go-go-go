@@ -10,7 +10,16 @@ type GameData struct {
 	Player game.Player
 	Stones []game.Stone // all stones info (position, radius, etc)
 	Size   game.Size
+}
 
-	GameOver bool
-	Winner   string
+type GameState string
+
+const (
+	GameStateStart GameState = "start"
+	GameStateOver  GameState = "over"
+)
+
+type GameStateChange struct {
+	State GameState
+	Data  map[string]string
 }

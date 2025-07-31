@@ -63,8 +63,10 @@ func (p *startPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case 0: // Start Game
 				return p, cmd(PagePushMsg{ID: LobbyPage})
 			case 1: // Options
+				p.showMessage("Options is not implemented yet")
 				return p, nil
 			case 2: // Help
+				p.showMessage("Help is not implemented yet")
 				return p, nil
 			case 3: // Quit
 				p.quitting = true
@@ -125,6 +127,8 @@ func (p *startPage) mainView() string {
 					),
 				),
 			),
+			layout.Expanded(""),
+			layout.Fixed(messageView(p.message)),
 			layout.Expanded(""),
 			layout.Fixed(
 				// Buttons

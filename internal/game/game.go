@@ -8,7 +8,7 @@ const (
 	maxPlayers               = 2
 	boardWidth       float64 = 100.0
 	boardHeight      float64 = 100.0
-	maxStones                = 10
+	maxStones                = 10 // each player stones
 	whiteStoneStartY         = boardHeight / 4
 	blackStoneStartY         = boardHeight / 4 * 3
 	startX                   = boardWidth / 11
