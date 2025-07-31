@@ -10,8 +10,8 @@ type DataType string
 const (
 	StartGame       DataType = "start_game"
 	PlayerStartGame DataType = "player_start_game"
-	Shoot           DataType = "shoot"
-	StoneAnimations DataType = "stone_animations"
+	PlayerShoot     DataType = "player_shoot"
+	ShootResult     DataType = "shoot_result"
 	TurnStart       DataType = "turn_start"
 	GameOver        DataType = "game_over"
 )
@@ -57,20 +57,12 @@ func unmarshalData(t DataType, data []byte) (any, error) {
 		var d PlayerStartGameData
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case Shoot:
-		var d ShootData
+	case PlayerShoot:
+		var d PlayerShootData
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case StoneAnimations:
-		var d StoneAnimationsData
-		err := json.Unmarshal(data, &d)
-		return d, err
-	case TurnStart:
-		var d TurnStartData
-		err := json.Unmarshal(data, &d)
-		return d, err
-	case GameOver:
-		var d GameOverData
+	case ShootResult:
+		var d ShootResultData
 		err := json.Unmarshal(data, &d)
 		return d, err
 	}
@@ -90,23 +82,24 @@ type PlayerStartGameData struct {
 	Size   `json:"size"`
 }
 
-type ShootData struct {
+type PlayerShootData struct {
 	PlayerID int     `json:"playerID"`
 	StoneID  int     `json:"stoneID"`
 	Velocity Vector2 `json:"velocity"`
 }
 
-type StoneAnimationsData struct {
-	InitialStones []Stone          `json:"initialStones"`
-	FinalStones   []Stone          `json:"finalStones"`
-	Animations    []StoneAnimation `json:"animations"`
-	MaxStep       int              `json:"maxStep"`
+type ShootResultData struct {
+	// Animation
+	Animation AnimationData `json:"animation"`
+	// Game Info
+	Stones     []Stone `json:"stones"`
+	Turn       int     `json:"turn"`
+	IsGameOver bool    `json:"isGameOver"`
+	Winner     string  `json:"winner"`
 }
 
-type TurnStartData struct {
-	Turn int `json:"turn"`
-}
-
-type GameOverData struct {
-	WinnerID int `json:"winnerID"`
+type AnimationData struct {
+	InitialStones    []Stone     `json:"initialStones"`
+	Paths            []StonePath `json:"paths"`
+	MaxAnimationStep int         `json:"maxAnimationStep"`
 }

@@ -24,10 +24,7 @@ func (c *GameClient) GetRightStone(selectedStoneID int) int {
 }
 
 func (c *GameClient) GetCurrentStone(selectedStoneID int) int {
-	cur, err := c.getNextStone(selectedStoneID, 0)
-	if err != nil {
-		return selectedStoneID
-	}
+	cur, _ := c.getNextStone(selectedStoneID, 0)
 	return cur
 }
 

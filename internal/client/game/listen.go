@@ -74,13 +74,16 @@ func (c *GameClient) handleGameEvent(evt game.Event) error {
 			Stones: data.Stones,
 			Size:   data.Size,
 		}
-	case game.StoneAnimations:
-		data := evt.Data.(game.StoneAnimationsData)
-		c.gameData.Stones = data.FinalStones
-		c.AnimationCh <- &data
-	case game.TurnStart:
-		data := evt.Data.(game.TurnStartData)
+		c.StartGameCh <- struct{}{}
+	case game.ShootResult:
+		data := evt.Data.(game.ShootResultData)
+		c.AnimationCh <- &data.Animation
+		c.gameData.Stones = data.Stones
 		c.gameData.Turn = data.Turn
+		if data.IsGameOver {
+			c.gameData.GameOver = true
+			c.gameData.Winner = data.Winner
+		}
 	default:
 		slog.Error("unknown event type", "type", evt.Type)
 	}

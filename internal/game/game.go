@@ -105,10 +105,6 @@ func (g *Game) placeStones() {
 	}
 }
 
-func (g *Game) GetStones() []Stone {
-	return g.stones
-}
-
 type moving struct {
 	id          int
 	startPos    Vector2
@@ -122,8 +118,8 @@ func (m moving) String() string {
 	return fmt.Sprintf("moving{id: %d, startPos: %v, velocity: %v, startStep: %d, curStep: %d}", m.id, m.startPos, m.velocity, m.startStep, m.curStep)
 }
 
-func addAnimation(animations []StoneAnimation, mov moving, endPosition Vector2) []StoneAnimation {
-	return append(animations, StoneAnimation{
+func addAnimation(animations []StonePath, mov moving, endPosition Vector2) []StonePath {
+	return append(animations, StonePath{
 		StoneID:   mov.id,
 		StartStep: mov.startStep,
 		EndStep:   mov.curStep,
@@ -132,7 +128,7 @@ func addAnimation(animations []StoneAnimation, mov moving, endPosition Vector2) 
 	})
 }
 
-func simulateCollision(movings []moving, stones []Stone, animations []StoneAnimation, dt float64) ([]moving, []StoneAnimation) {
+func simulateCollision(movings []moving, stones []Stone, animations []StonePath, dt float64) ([]moving, []StonePath) {
 	var nextMovings []moving
 	if len(movings) == 0 {
 		return nextMovings, animations
@@ -196,7 +192,7 @@ func simulateCollision(movings []moving, stones []Stone, animations []StoneAnima
 	return nextMovings, animations
 }
 
-func (g *Game) ShootStone(shootData ShootData) (Event, error) {
+func (g *Game) ShootStone(shootData PlayerShootData) (Event, error) {
 	striking := g.stones[shootData.StoneID]
 	if striking.IsOut {
 		return Event{}, fmt.Errorf("stone is out of board")
@@ -204,7 +200,7 @@ func (g *Game) ShootStone(shootData ShootData) (Event, error) {
 	initialStones := make([]Stone, len(g.stones))
 	copy(initialStones, g.stones)
 
-	animations := []StoneAnimation{}
+	animations := []StonePath{}
 	movings := []moving{
 		{
 			id: striking.ID, startPos: striking.Position, velocity: shootData.Velocity,
@@ -223,21 +219,45 @@ func (g *Game) ShootStone(shootData ShootData) (Event, error) {
 			maxStep = anim.EndStep
 		}
 	}
-	evt := Event{Type: StoneAnimations, Data: StoneAnimationsData{
-		InitialStones: initialStones,
-		FinalStones:   g.stones,
-		Animations:    animations,
-		MaxStep:       maxStep,
+	// check game over
+	isOver, winner := checkGameOver(g.stones)
+	g.turn = (g.turn + 1) % maxPlayers
+
+	evt := Event{Type: ShootResult, Data: ShootResultData{
+		Animation: AnimationData{
+			InitialStones:    initialStones,
+			Paths:            animations,
+			MaxAnimationStep: maxStep,
+		},
+		Stones:     g.stones,
+		Turn:       int(g.turn),
+		IsGameOver: isOver,
+		Winner:     winner,
 	}}
 	g.record = append(g.record, evt)
 	return evt, nil
 }
 
-func (g *Game) NextTurn() Event {
-	g.turn = (g.turn + 1) % maxPlayers
-	evt := Event{Type: TurnStart, Data: TurnStartData{Turn: int(g.turn)}}
-	g.record = append(g.record, evt)
-	return evt
+func checkGameOver(stones []Stone) (isOver bool, winner string) {
+	wCount, bCount := 0, 0
+	for _, stone := range stones {
+		if !stone.IsOut {
+			if stone.StoneType == White {
+				wCount += 1
+			} else {
+				bCount += 1
+			}
+		}
+	}
+	if wCount == 0 {
+		winner = "Black"
+		isOver = true
+	}
+	if bCount == 0 {
+		winner = "White"
+		isOver = true
+	}
+	return isOver, winner
 }
 
 func outOfBoard(pos Vector2) bool {

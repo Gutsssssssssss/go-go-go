@@ -10,5 +10,7 @@ type GameData struct {
 	Player game.Player
 	Stones []game.Stone // all stones info (position, radius, etc)
 	Size   game.Size
-}
 
+	GameOver bool
+	Winner   string
+}

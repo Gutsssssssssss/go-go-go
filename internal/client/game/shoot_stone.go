@@ -13,8 +13,8 @@ func (c *GameClient) ShootStone(stoneID int, degrees int, power int) error {
 		return fmt.Errorf("no connection")
 	}
 	evt := game.Event{
-		Type: game.Shoot,
-		Data: game.ShootData{
+		Type: game.PlayerShoot,
+		Data: game.PlayerShootData{
 			PlayerID: c.gameData.Player.ID,
 			StoneID:  stoneID,
 			Velocity: game.ConvertToVelocity(float64(degrees), float64(power)),

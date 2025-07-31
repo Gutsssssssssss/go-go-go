@@ -13,8 +13,8 @@ func TestUnmarshalMessage(t *testing.T) {
 		m := Message{
 			Type: GameEventMessage,
 			Data: game.Event{
-				Type: game.Shoot,
-				Data: game.ShootData{
+				Type: game.PlayerShoot,
+				Data: game.PlayerShootData{
 					PlayerID: 0,
 					StoneID:  1,
 					Velocity: game.Vector2{X: 1, Y: 0},

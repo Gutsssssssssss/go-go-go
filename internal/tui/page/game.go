@@ -42,7 +42,7 @@ type gamePage struct {
 	progressOff progress.Model
 
 	// Animation
-	animationData *game.StoneAnimationsData
+	animationData *game.AnimationData
 	currentStep   int
 	isAnimating   bool
 }
@@ -61,11 +61,9 @@ func (p *gamePage) Init() tea.Cmd {
 	if err != nil {
 		slog.Error("failed to start game", "err", err)
 	}
-	p.selectedStoneID = 0
 	p.status = gameView.ControlSelectStone
-
 	// listen for animation
-	return p.ListenAnimation()
+	return p.ListenClient()
 }
 
 func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -95,10 +93,13 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.data != nil {
 			cmds = append(cmds, p.startAnimation(msg.data))
 		}
-		cmds = append(cmds, p.ListenAnimation())
+		cmds = append(cmds, p.ListenClient())
 		return p, tea.Batch(cmds...)
 	case tickMsg:
 		return p.updateAnimation()
+	case gameStartedMsg:
+		p.selectedStoneID = p.client.GetCurrentStone(0)
+		return p, p.ListenClient()
 	}
 	return p, nil
 }
@@ -254,20 +255,26 @@ func (p *gamePage) shootStone() {
 }
 
 type animationMsg struct {
-	data *game.StoneAnimationsData
+	data *game.AnimationData
 }
 
-func (p *gamePage) ListenAnimation() tea.Cmd {
+type gameStartedMsg struct{}
+
+func (p *gamePage) ListenClient() tea.Cmd {
 	return func() tea.Msg {
-		data, ok := <-p.client.AnimationCh
-		if !ok {
-			return nil
+		select {
+		case data, ok := <-p.client.AnimationCh:
+			if !ok {
+				return nil
+			}
+			return animationMsg{data: data}
+		case <-p.client.StartGameCh:
+			return gameStartedMsg{}
 		}
-		return animationMsg{data: data}
 	}
 }
 
-func (p *gamePage) startAnimation(data *game.StoneAnimationsData) tea.Cmd {
+func (p *gamePage) startAnimation(data *game.AnimationData) tea.Cmd {
 	p.animationData = data
 	p.currentStep = 0
 	p.isAnimating = true
@@ -280,7 +287,7 @@ func (p *gamePage) startAnimation(data *game.StoneAnimationsData) tea.Cmd {
 func (p *gamePage) updateAnimation() (tea.Model, tea.Cmd) {
 	if p.isAnimating && p.animationData != nil {
 		p.currentStep++
-		if p.currentStep >= p.animationData.MaxStep {
+		if p.currentStep >= p.animationData.MaxAnimationStep {
 			// Animation complete
 			p.isAnimating = false
 			p.animationData = nil

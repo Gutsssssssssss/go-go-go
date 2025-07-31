@@ -17,7 +17,6 @@ func (g grid) drawStones(stones []game.Stone, scale scale, data ControlData) {
 }
 
 func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
-
 	x := stone.Position.X * scale.width
 	y := stone.Position.Y * scale.height
 	radiusW := stone.Radius * scale.width
@@ -35,7 +34,7 @@ func (g grid) drawStone(stone game.Stone, scale scale, data ControlData) {
 	g.drawCircle(x, y, radiusW, radiusH, circle)
 }
 
-func (g grid) drawAnimation(anim game.StoneAnimation, curStep int, scale scale, stone game.Stone) {
+func (g grid) drawAnimation(anim game.StonePath, curStep int, scale scale, stone game.Stone) {
 	v := game.BlendVector(anim.EndPos, anim.StartPos,
 		float64(curStep-anim.StartStep)/float64(anim.EndStep-anim.StartStep),
 	)

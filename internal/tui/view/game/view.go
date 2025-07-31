@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+
 	gameClient "github.com/yanmoyy/go-go-go/internal/client/game"
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
@@ -17,13 +19,17 @@ type Props struct {
 	ControlData ControlData
 
 	// Animation
-	AnimationsData   *game.StoneAnimationsData
+	AnimationsData   *game.AnimationData
 	CurAnimationStep int
 }
 
 func View(props Props) string {
 	if props.GameData == nil || props.GameData.Size.Width == 0 || props.GameData.Size.Height == 0 || len(props.GameData.Stones) == 0 {
 		return ""
+	}
+
+	if props.GameData.GameOver {
+		return fmt.Sprintf("Game Over! Winner: %s", props.GameData.Winner)
 	}
 	// Get the size of the game board
 	gameW, gameH := props.GameData.Size.Width, props.GameData.Size.Height
@@ -36,11 +42,11 @@ func View(props Props) string {
 	if props.AnimationsData != nil {
 		initialStones := props.AnimationsData.InitialStones
 		grid.drawStones(initialStones, scale, props.ControlData)
-		for _, anim := range props.AnimationsData.Animations {
-			if anim.StartStep > props.CurAnimationStep {
+		for _, path := range props.AnimationsData.Paths {
+			if path.StartStep > props.CurAnimationStep {
 				continue
 			}
-			grid.drawAnimation(anim, props.CurAnimationStep, scale, initialStones[anim.StoneID])
+			grid.drawAnimation(path, props.CurAnimationStep, scale, initialStones[path.StoneID])
 		}
 		return grid.String()
 	}

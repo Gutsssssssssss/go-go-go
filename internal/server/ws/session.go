@@ -157,14 +157,16 @@ func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
 			s.sendResponse(clientID, req.ID, api.ResponseFailed, "failed to handle game event")
 			return err
 		}
-		// broadcast stone animations event
-		s.broadcastGameEvent(res)
-		switch evt.Type {
-		case game.Shoot:
-			// broadcast turn start event
-			s.broadcastGameEvent(s.game.NextTurn())
-		}
 		s.sendResponse(clientID, req.ID, api.ResponseSuccess, "game event successfully handled")
+
+		// broadcast result event
+		s.broadcastGameEvent(res)
+		// switch evt.Type {
+		// case game.Shoot:
+		// 	// broadcast turn start event
+		// 	s.broadcastGameEvent(s.game.NextTurn())
+
+		// }
 	default:
 		return fmt.Errorf("unknown request type: %s", req.Type)
 	}
@@ -174,8 +176,8 @@ func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
 // handleGameEvent handles a game event, and returns the next event and whether it needs to be broadcasted
 func (s *Session) handleGameEvent(evt game.Event) (res game.Event, err error) {
 	switch evt.Type {
-	case game.Shoot:
-		res, err = s.game.ShootStone(evt.Data.(game.ShootData))
+	case game.PlayerShoot:
+		res, err = s.game.ShootStone(evt.Data.(game.PlayerShootData))
 		if err != nil {
 			return game.Event{}, err
 		}

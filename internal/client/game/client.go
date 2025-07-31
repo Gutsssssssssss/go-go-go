@@ -9,10 +9,13 @@ import (
 )
 
 type GameClient struct {
-	conn        *websocket.Conn
-	done        chan struct{}
-	gameData    *GameData
-	AnimationCh chan *game.StoneAnimationsData
+	conn     *websocket.Conn
+	done     chan struct{}
+	gameData *GameData
+
+	// channels
+	StartGameCh chan struct{} // check if the game is started
+	AnimationCh chan *game.AnimationData
 	responseCh  chan api.Response
 }
 
@@ -20,7 +23,8 @@ func NewGameClient(conn *websocket.Conn) *GameClient {
 	return &GameClient{
 		conn:        conn,
 		responseCh:  make(chan api.Response),
-		AnimationCh: make(chan *game.StoneAnimationsData),
+		AnimationCh: make(chan *game.AnimationData),
+		StartGameCh: make(chan struct{}),
 		gameData:    &GameData{},
 	}
 }
