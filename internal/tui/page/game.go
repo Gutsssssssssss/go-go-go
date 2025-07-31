@@ -78,63 +78,17 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch {
 		case key.Matches(msg, keys.Quit()):
-			switch p.status {
-			case gameView.ControlSelectStone:
-				// TODO: quit dialog
-				p.client.Close()
-				return p, cmd(PagePopMsg{})
-			case gameView.ControlDirection:
-				p.status = gameView.ControlSelectStone
-			case gameView.ControlCharging:
-				p.status = gameView.ControlDirection
-			}
+			return p.onEscapePressed()
 		case key.Matches(msg, keys.Up()):
-			if p.status == gameView.ControlCharging {
-				p.power += 1
-				if p.power > gameView.MaxPower {
-					p.power = gameView.MaxPower
-				}
-			}
+			return p.onUpPressed()
 		case key.Matches(msg, keys.Down()):
-			if p.status == gameView.ControlCharging {
-				p.power -= 1
-				if p.power < gameView.MinPower {
-					p.power = gameView.MinPower
-				}
-			}
+			return p.onDownPressed()
 		case key.Matches(msg, keys.Left()):
-			switch p.status {
-			case gameView.ControlSelectStone:
-				p.selectedStoneID = p.client.GetLeftStone(p.selectedStoneID)
-			case gameView.ControlDirection:
-				p.degrees = p.degrees - 15
-				if p.degrees < gameView.MinDegrees {
-					p.degrees = gameView.MaxDegrees - 15
-				}
-			}
+			return p.onLeftPressed()
 		case key.Matches(msg, keys.Right()):
-			switch p.status {
-			case gameView.ControlSelectStone:
-				p.selectedStoneID = p.client.GetRightStone(p.selectedStoneID)
-			case gameView.ControlDirection:
-				p.degrees = p.degrees + 15
-				if p.degrees > gameView.MaxDegrees {
-					p.degrees = gameView.MinDegrees + 15
-				}
-			}
+			return p.onRightPressed()
 		case key.Matches(msg, keys.Enter()):
-			if !p.client.IsPlayerTurn() {
-				slog.Info("not player turn")
-				return p, nil
-			}
-			switch p.status {
-			case gameView.ControlSelectStone:
-				p.status = gameView.ControlDirection
-			case gameView.ControlDirection:
-				p.status = gameView.ControlCharging
-			case gameView.ControlCharging:
-				p.shootStone()
-			}
+			return p.onEnterPressed()
 		}
 	case animationMsg:
 		var cmds []tea.Cmd
@@ -158,7 +112,6 @@ func (p *gamePage) View() string {
 	if p.client == nil {
 		return ""
 	}
-	t := theme.GetTheme()
 	const (
 		PADDING    = 1
 		MARGIN     = 1
@@ -176,14 +129,14 @@ func (p *gamePage) View() string {
 				view.BoardProps{
 					Width:       sideWidth,
 					Height:      boardHeight,
-					BorderColor: t.PrimaryColor,
+					BorderColor: p.getTurnColor(),
 				},
 				layout.Column(
 					view.Board(
 						view.BoardProps{
 							Width:       sideWidth - 2, // minus for border
 							Height:      boardHeight/2 - 1,
-							BorderColor: getColor(p.status, gameView.ControlDirection),
+							BorderColor: p.getStatusColor(gameView.ControlDirection),
 						},
 						layout.Column(
 							fmt.Sprintf("Degrees (%d°)", p.degrees),
@@ -195,7 +148,7 @@ func (p *gamePage) View() string {
 						view.BoardProps{
 							Width:       sideWidth - 2, // minus for border
 							Height:      boardHeight/2 - 1,
-							BorderColor: getColor(p.status, gameView.ControlCharging),
+							BorderColor: p.getStatusColor(gameView.ControlCharging),
 						},
 						layout.Column(
 							fmt.Sprintf("Power (%d)", p.power),
@@ -209,13 +162,13 @@ func (p *gamePage) View() string {
 				view.BoardProps{
 					Width:       boardWidth,
 					Height:      boardHeight,
-					BorderColor: t.PrimaryColor,
+					BorderColor: p.getTurnColor(),
 				},
 				view.Board(
 					view.BoardProps{
 						Width:       boardWidth - 2,
 						Height:      boardHeight - 2,
-						BorderColor: getColor(p.status, gameView.ControlSelectStone),
+						BorderColor: p.getStatusColor(gameView.ControlSelectStone),
 					},
 					gameView.View(
 						gameView.Props{
@@ -228,6 +181,7 @@ func (p *gamePage) View() string {
 								Status:          p.status,
 								SelectedStoneID: p.selectedStoneID,
 								Degrees:         gameView.Degrees(p.degrees),
+								IndicatorColor:  p.getTurnColor(),
 							},
 						},
 					),
@@ -237,7 +191,7 @@ func (p *gamePage) View() string {
 				view.BoardProps{
 					Width:       sideWidth,
 					Height:      boardHeight,
-					BorderColor: t.PrimaryColor,
+					BorderColor: p.getTurnColor(),
 				},
 				layout.Column(
 					"right",
@@ -265,8 +219,15 @@ func (p *gamePage) setProgresses() {
 	p.progressOff.EmptyColor = string(color.Gray)
 }
 
-func getColor(s gameView.ControlStatus, current gameView.ControlStatus) lipgloss.Color {
-	if s == current {
+func (p *gamePage) getStatusColor(status gameView.ControlStatus) lipgloss.Color {
+	if p.status == status {
+		return p.getTurnColor()
+	}
+	return theme.GetTheme().DisabledColor
+}
+
+func (p *gamePage) getTurnColor() lipgloss.Color {
+	if p.client != nil && p.client.IsPlayerTurn() {
 		return theme.GetTheme().PrimaryColor
 	}
 	return theme.GetTheme().DisabledColor
@@ -331,6 +292,89 @@ func (p *gamePage) updateAnimation() (tea.Model, tea.Cmd) {
 		return p, tea.Tick(time.Millisecond*10, func(time.Time) tea.Msg {
 			return tickMsg{}
 		})
+	}
+	return p, nil
+}
+
+// ########## Key Press Handler ##########
+
+func (p *gamePage) onLeftPressed() (tea.Model, tea.Cmd) {
+	if !p.client.IsPlayerTurn() {
+		return p, nil
+	}
+	switch p.status {
+	case gameView.ControlSelectStone:
+		p.selectedStoneID = p.client.GetLeftStone(p.selectedStoneID)
+	case gameView.ControlDirection:
+		p.degrees = p.degrees - 15
+		if p.degrees < gameView.MinDegrees {
+			p.degrees = gameView.MaxDegrees - 15
+		}
+	}
+	return p, nil
+}
+
+func (p *gamePage) onRightPressed() (tea.Model, tea.Cmd) {
+	if !p.client.IsPlayerTurn() {
+		return p, nil
+	}
+	switch p.status {
+	case gameView.ControlSelectStone:
+		p.selectedStoneID = p.client.GetRightStone(p.selectedStoneID)
+	case gameView.ControlDirection:
+		p.degrees = p.degrees + 15
+		if p.degrees > gameView.MaxDegrees {
+			p.degrees = gameView.MinDegrees + 15
+		}
+	}
+	return p, nil
+}
+
+func (p *gamePage) onUpPressed() (tea.Model, tea.Cmd) {
+	if p.status == gameView.ControlCharging {
+		p.power += 1
+		if p.power > gameView.MaxPower {
+			p.power = gameView.MaxPower
+		}
+	}
+	return p, nil
+}
+
+func (p *gamePage) onDownPressed() (tea.Model, tea.Cmd) {
+	if p.status == gameView.ControlCharging {
+		p.power -= 1
+		if p.power < gameView.MinPower {
+			p.power = gameView.MinPower
+		}
+	}
+	return p, nil
+}
+
+func (p *gamePage) onEnterPressed() (tea.Model, tea.Cmd) {
+	if !p.client.IsPlayerTurn() {
+		return p, nil
+	}
+	switch p.status {
+	case gameView.ControlSelectStone:
+		p.status = gameView.ControlDirection
+	case gameView.ControlDirection:
+		p.status = gameView.ControlCharging
+	case gameView.ControlCharging:
+		p.shootStone()
+	}
+	return p, nil
+}
+
+func (p *gamePage) onEscapePressed() (tea.Model, tea.Cmd) {
+	switch p.status {
+	case gameView.ControlSelectStone:
+		// TODO: quit dialog
+		p.client.Close()
+		return p, cmd(PagePopMsg{})
+	case gameView.ControlDirection:
+		p.status = gameView.ControlSelectStone
+	case gameView.ControlCharging:
+		p.status = gameView.ControlDirection
 	}
 	return p, nil
 }

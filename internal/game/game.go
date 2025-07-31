@@ -67,7 +67,7 @@ func (g *Game) GetPlayerStartGameEvent(uuid string) Event {
 	return Event{
 		Type: PlayerStartGame,
 		Data: PlayerStartGameData{
-			Turn:   g.turn,
+			Turn:   int(g.turn),
 			Player: g.players[id],
 			Stones: g.stones,
 			Size:   Size{boardWidth, boardHeight},
@@ -197,7 +197,6 @@ func simulateCollision(movings []moving, stones []Stone, animations []StoneAnima
 }
 
 func (g *Game) ShootStone(shootData ShootData) (Event, error) {
-	// TODO: add shootData another field. for better client side abstraction
 	striking := g.stones[shootData.StoneID]
 	if striking.IsOut {
 		return Event{}, fmt.Errorf("stone is out of board")
@@ -232,6 +231,13 @@ func (g *Game) ShootStone(shootData ShootData) (Event, error) {
 	}}
 	g.record = append(g.record, evt)
 	return evt, nil
+}
+
+func (g *Game) NextTurn() Event {
+	g.turn = (g.turn + 1) % maxPlayers
+	evt := Event{Type: TurnStart, Data: TurnStartData{Turn: int(g.turn)}}
+	g.record = append(g.record, evt)
+	return evt
 }
 
 func outOfBoard(pos Vector2) bool {

@@ -1,5 +1,7 @@
 package game
 
+import "github.com/charmbracelet/lipgloss"
+
 type ControlStatus int
 
 const (
@@ -22,4 +24,5 @@ type ControlData struct {
 	Status          ControlStatus
 	SelectedStoneID int
 	Degrees         Degrees
+	IndicatorColor  lipgloss.Color
 }

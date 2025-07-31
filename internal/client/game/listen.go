@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
@@ -24,12 +25,16 @@ func (c *GameClient) StartListenConn(done chan struct{}) error {
 	go func() {
 		select {
 		case <-c.done:
+			_ = c.conn.Close()
 			return
 		default:
 			for {
 				_, message, err := c.conn.ReadMessage()
 				if err != nil {
-					slog.Error("read message", "err", err)
+					if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+						slog.Error("read message", "err", err)
+						return
+					}
 					return
 				}
 				decoder := json.NewDecoder(bytes.NewReader(message))
@@ -64,17 +69,18 @@ func (c *GameClient) handleGameEvent(evt game.Event) error {
 	case game.PlayerStartGame:
 		data := evt.Data.(game.PlayerStartGameData)
 		c.gameData = &GameData{
-			Turn:   int(data.Turn),
+			Turn:   data.Turn,
 			Player: data.Player,
 			Stones: data.Stones,
 			Size:   data.Size,
 		}
-	// case game.TurnStart:
-	// TODO: handle turn start
 	case game.StoneAnimations:
 		data := evt.Data.(game.StoneAnimationsData)
 		c.gameData.Stones = data.FinalStones
 		c.AnimationCh <- &data
+	case game.TurnStart:
+		data := evt.Data.(game.TurnStartData)
+		c.gameData.Turn = data.Turn
 	default:
 		slog.Error("unknown event type", "type", evt.Type)
 	}

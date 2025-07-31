@@ -21,6 +21,7 @@ func NewGameClient(conn *websocket.Conn) *GameClient {
 		conn:        conn,
 		responseCh:  make(chan api.Response),
 		AnimationCh: make(chan *game.StoneAnimationsData),
+		gameData:    &GameData{},
 	}
 }
 
@@ -33,7 +34,6 @@ func (c *GameClient) GetGameData() *GameData {
 }
 
 func (c *GameClient) Close() {
-	_ = c.conn.Close()
 	if c.done != nil {
 		close(c.done)
 	}

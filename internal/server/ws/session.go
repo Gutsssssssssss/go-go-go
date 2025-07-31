@@ -152,13 +152,19 @@ func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
 		if err := json.Unmarshal(req.Data, &evt); err != nil {
 			return fmt.Errorf("failed to unmarshal event: %w", err)
 		}
-		nxtEvt, err := s.handleGameEvent(evt)
+		res, err := s.handleGameEvent(evt)
 		if err != nil {
 			s.sendResponse(clientID, req.ID, api.ResponseFailed, "failed to handle game event")
 			return err
 		}
+		// broadcast stone animations event
+		s.broadcastGameEvent(res)
+		switch evt.Type {
+		case game.Shoot:
+			// broadcast turn start event
+			s.broadcastGameEvent(s.game.NextTurn())
+		}
 		s.sendResponse(clientID, req.ID, api.ResponseSuccess, "game event successfully handled")
-		s.broadcastGameEvent(nxtEvt)
 	default:
 		return fmt.Errorf("unknown request type: %s", req.Type)
 	}
@@ -166,15 +172,15 @@ func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
 }
 
 // handleGameEvent handles a game event, and returns the next event and whether it needs to be broadcasted
-func (s *Session) handleGameEvent(evt game.Event) (nxt game.Event, err error) {
+func (s *Session) handleGameEvent(evt game.Event) (res game.Event, err error) {
 	switch evt.Type {
 	case game.Shoot:
-		nxt, err = s.game.ShootStone(evt.Data.(game.ShootData))
+		res, err = s.game.ShootStone(evt.Data.(game.ShootData))
 		if err != nil {
 			return game.Event{}, err
 		}
 	default:
 		return game.Event{}, fmt.Errorf("unknown event type: %s", evt.Type)
 	}
-	return nxt, nil
+	return res, nil
 }

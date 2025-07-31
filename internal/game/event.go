@@ -12,6 +12,7 @@ const (
 	PlayerStartGame DataType = "player_start_game"
 	Shoot           DataType = "shoot"
 	StoneAnimations DataType = "stone_animations"
+	TurnStart       DataType = "turn_start"
 	GameOver        DataType = "game_over"
 )
 
@@ -64,6 +65,10 @@ func unmarshalData(t DataType, data []byte) (any, error) {
 		var d StoneAnimationsData
 		err := json.Unmarshal(data, &d)
 		return d, err
+	case TurnStart:
+		var d TurnStartData
+		err := json.Unmarshal(data, &d)
+		return d, err
 	case GameOver:
 		var d GameOverData
 		err := json.Unmarshal(data, &d)
@@ -79,9 +84,9 @@ type StartGameData struct {
 }
 
 type PlayerStartGameData struct {
-	Turn   playerID `json:"turn"`
-	Player Player   `json:"player"`
-	Stones []Stone  `json:"stones"`
+	Turn   int     `json:"turn"`
+	Player Player  `json:"player"`
+	Stones []Stone `json:"stones"`
 	Size   `json:"size"`
 }
 
@@ -96,6 +101,10 @@ type StoneAnimationsData struct {
 	FinalStones   []Stone          `json:"finalStones"`
 	Animations    []StoneAnimation `json:"animations"`
 	MaxStep       int              `json:"maxStep"`
+}
+
+type TurnStartData struct {
+	Turn int `json:"turn"`
 }
 
 type GameOverData struct {
