@@ -2,7 +2,7 @@ package keys
 
 import "github.com/charmbracelet/bubbles/key"
 
-var gameKeys = newKeyMap(Up(), Down(), Left(), Right(), Enter(), Quit())
+var gameKeys = newKeyMap(Up(), Down(), Left(), Right(), Enter(), Input(), Quit())
 
 func GetGameKeys() gameKeyMap {
 	return gameKeyMap{
@@ -35,6 +35,10 @@ func (k gameKeyMap) Enter() key.Binding {
 	return k.bindings[4]
 }
 
-func (k gameKeyMap) Quit() key.Binding {
+func (k gameKeyMap) Input() key.Binding {
 	return k.bindings[5]
+}
+
+func (k gameKeyMap) Quit() key.Binding {
+	return k.bindings[6]
 }

@@ -129,12 +129,13 @@ func (s *Session) broadcastGameEvent(evt game.Event) {
 	}
 }
 
-func (s *Session) broadcastServerMessage(t api.ServerMsgType, message string) {
+func (s *Session) broadcastServerMessage(t api.ServerMsgType, from, message string) {
 	for id := range s.clients {
 		s.sendClientWithJSON(id, api.Message{
 			Type: api.ServerMsg,
 			Data: api.ServerMessage{
 				Time:    time.Now(),
+				From:    from,
 				Type:    t,
 				Message: message,
 			},
@@ -157,7 +158,7 @@ func (s *Session) handleMessage(msg message) error {
 		}
 	case api.ChatMsg:
 		data := m.Data.(api.ChatData)
-		s.broadcastServerMessage(api.ServerChat, fmt.Sprintf("%s: %s", data.Name, data.Content))
+		s.broadcastServerMessage(api.ServerChat, data.Name, data.Content)
 	}
 	return nil
 }
@@ -178,7 +179,7 @@ func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
 
 		// broadcast result event
 		s.broadcastGameEvent(res)
-		s.broadcastServerMessage(api.ServerGame, getDescription(res))
+		s.broadcastServerMessage(api.ServerGame, "server", getDescription(res))
 	default:
 		return fmt.Errorf("unknown request type: %s", req.Type)
 	}

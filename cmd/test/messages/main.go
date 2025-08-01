@@ -16,26 +16,25 @@ func main() {
 		{
 			Time:    time.Now(),
 			Type:    api.ServerChat,
-			Message: "game start",
-		},
-		{
-			Time:    time.Now(),
-			Type:    api.ServerGame,
-			Message: "Someone shoot stone",
+			From:    "Black",
+			Message: "HI, I'm Black",
 		},
 		{
 			Time:    time.Now(),
 			Type:    api.ServerChat,
-			Message: "Hi you are so cool",
+			From:    "White",
+			Message: "Hi, I'm White",
 		},
 		{
 			Time:    time.Now(),
 			Type:    api.ServerGame,
+			From:    "Server",
 			Message: "game over",
 		},
 		{
 			Time:    time.Now(),
 			Type:    api.ServerChat,
+			From:    "Black",
 			Message: "Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message Very Long Message",
 		},
 	}

@@ -58,6 +58,13 @@ func Back() key.Binding {
 	)
 }
 
+func Input() key.Binding {
+	return key.NewBinding(
+		key.WithKeys("i"),
+		key.WithHelp("i", "input"),
+	)
+}
+
 type KeyMap struct {
 	bindings []key.Binding
 }

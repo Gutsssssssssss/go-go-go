@@ -9,6 +9,16 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
+func sendChatMessage(conn *websocket.Conn, name, content string) error {
+	return sendJSON(conn, api.Message{
+		Type: api.ChatMsg,
+		Data: api.ChatData{
+			Name:    name,
+			Content: content,
+		},
+	})
+}
+
 func sendGameEventRequest(conn *websocket.Conn, id string, evt game.Event) error {
 	jsonData, err := json.Marshal(evt)
 	if err != nil {
@@ -31,11 +41,11 @@ func sendGameEventRequest(conn *websocket.Conn, id string, evt game.Event) error
 func sendJSON(conn *websocket.Conn, data any) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal data: %w", err)
+		return err
 	}
 	err = conn.WriteMessage(websocket.TextMessage, jsonData)
 	if err != nil {
-		return fmt.Errorf("failed to write message: %w", err)
+		return err
 	}
 	return nil
 }

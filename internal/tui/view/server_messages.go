@@ -1,6 +1,8 @@
 package view
 
 import (
+	"unicode"
+
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yanmoyy/go-go-go/internal/api"
 	"github.com/yanmoyy/go-go-go/internal/tui/color"
@@ -8,7 +10,7 @@ import (
 
 const (
 	padding      = 1
-	minWidthLine = " 12:34 |  [CHAT] " // width: 17
+	minWidthLine = " 12:34 |  [B] " // for calculating min width
 )
 
 type MessagesProps struct {
@@ -30,7 +32,7 @@ func ServerMessages(messages []api.ServerMessage, props MessagesProps) string {
 		Padding(0, padding).
 		AlignHorizontal(lipgloss.Left)
 
-	h := lipgloss.Height(style.Render(""))
+	h := lipgloss.Height(style.Render("temp"))
 	n := min(props.Height/h, len(messages))
 	messages = messages[len(messages)-n:]
 
@@ -48,9 +50,21 @@ func ServerMessages(messages []api.ServerMessage, props MessagesProps) string {
 		line += gray.Render(msg.Time.Format("15:04 | "))
 		switch msg.Type {
 		case api.ServerChat:
-			line += white.Render(content, "[", blue.Render("CHAT"), "]")
+			content = white.Render(content)
 		case api.ServerGame:
-			line += gray.Render(msg.Message, white.Render("[ GAME ]"))
+			content = gray.Render(content)
+		}
+		line += content
+		if len(msg.From) > 0 {
+			initial := unicode.ToUpper(rune(msg.From[0]))
+			switch initial {
+			case 'B':
+				line += white.Render(" [", gray.Render("B"), white.Render("]"))
+			case 'W':
+				line += white.Render(" [", white.Render("W"), white.Render("]"))
+			case 'S':
+				line += white.Render(" [", blue.Render("S"), white.Render("]"))
+			}
 		}
 		strs[i] = style.Render(line)
 	}

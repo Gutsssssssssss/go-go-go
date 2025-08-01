@@ -53,6 +53,7 @@ func (c *GameClient) StartListenConn(done chan struct{}) error {
 						c.responseCh <- m.Data.(api.Response)
 					case api.ServerMsg:
 						serverMsg := m.Data.(api.ServerMessage)
+						slog.Info("server message received", "message", serverMsg)
 						c.serverMessages = append(c.serverMessages, serverMsg)
 						c.UIUpdateCh <- UIUpdate{Reason: ServerMsg}
 					default:

@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yanmoyy/go-go-go/internal/client"
@@ -45,6 +46,9 @@ type gamePage struct {
 	animationData *game.AnimationData
 	currentStep   int
 	isAnimating   bool
+
+	// chatting
+	textInput textinput.Model
 }
 
 type animationMsg struct {
@@ -64,6 +68,7 @@ type tickMsg struct{}
 func NewGamePage() tea.Model {
 	p := &gamePage{}
 	p.help = help.New()
+	p.textInput = textinput.New()
 	return p
 }
 
@@ -85,6 +90,9 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	keys := keys.GetGameKeys()
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if p.textInput.Focused() {
+			return p, p.onInputFocused(msg)
+		}
 		if p.isAnimating {
 			return p, nil
 		}
@@ -101,6 +109,8 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return p, p.onRightPressed()
 		case key.Matches(msg, keys.Enter()):
 			return p, p.onEnterPressed()
+		case key.Matches(msg, keys.Input()):
+			return p, p.onInputPressed()
 		}
 	case animationMsg:
 		var cmds []tea.Cmd
@@ -139,6 +149,10 @@ func (p *gamePage) View() string {
 	sideWidth := (p.window.width-boardWidth)/2 - 2 // minus for border
 	p.progressOn.Width = sideWidth - 6
 	p.progressOff.Width = sideWidth - 6
+
+	p.textInput.Width = sideWidth - 6
+	const textInputHeight = 1
+	p.textInput.CharLimit = textInputHeight * (sideWidth - 2)
 
 	return layout.Column(
 		layout.Row(
@@ -203,9 +217,14 @@ func (p *gamePage) View() string {
 					Height:      boardHeight,
 					BorderColor: p.getTurnColor(),
 				},
-				view.ServerMessages(
-					p.client.GetServerMessages(),
-					view.MessagesProps{Width: sideWidth - 2, Height: boardHeight},
+				layout.Column(
+					view.ServerMessages(
+						p.client.GetServerMessages(),
+						view.MessagesProps{
+							Width: sideWidth - 2, Height: boardHeight - textInputHeight - 2,
+						},
+					),
+					p.textInput.View(),
 				),
 			),
 		),
@@ -392,6 +411,37 @@ func (p *gamePage) onEscapePressed() tea.Cmd {
 		p.status = gameView.ControlSelectStone
 	case gameView.ControlCharging:
 		p.status = gameView.ControlDirection
+	}
+	return nil
+}
+
+func (p *gamePage) onInputPressed() tea.Cmd {
+	if !p.textInput.Focused() {
+		return p.textInput.Focus()
+	}
+	return nil
+}
+
+func (p *gamePage) onInputFocused(msg tea.KeyMsg) tea.Cmd {
+	switch msg.Type {
+	case tea.KeyEsc, tea.KeyCtrlC:
+		p.textInput.Blur()
+	case tea.KeyEnter:
+		if p.textInput.Value() == "" {
+			return nil
+		}
+		err := p.client.Chat(p.textInput.Value())
+		if err != nil {
+			p.textInput.SetValue(err.Error())
+		} else {
+			p.textInput.SetValue("")
+		}
+		p.textInput.Blur()
+		return p.onInputPressed()
+	default:
+		var cmd tea.Cmd
+		p.textInput, cmd = p.textInput.Update(msg)
+		return cmd
 	}
 	return nil
 }
