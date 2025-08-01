@@ -2,6 +2,7 @@ package client
 
 import (
 	"net/http"
+	"os"
 
 	game "github.com/yanmoyy/go-go-go/internal/client/game"
 )
@@ -28,7 +29,9 @@ func getClient() *Client {
 	if singleton != nil {
 		return singleton
 	}
-	singleton = newClient("http://localhost:8080", "ws://localhost:8080")
+	httpBase := os.Getenv("HTTP_BASE")
+	wsBase := os.Getenv("WS_BASE")
+	singleton = newClient(httpBase, wsBase)
 	return singleton
 }
 

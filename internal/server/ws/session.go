@@ -22,6 +22,7 @@ type Session struct {
 	registerCh   chan *Client
 	unregisterCh chan *Client
 	messageCh    chan message
+	Done         chan struct{}
 }
 
 func NewGameSession() *Session {
@@ -32,6 +33,7 @@ func NewGameSession() *Session {
 		registerCh:   make(chan *Client),
 		unregisterCh: make(chan *Client),
 		messageCh:    make(chan message, maxBufferSize),
+		Done:         make(chan struct{}),
 	}
 }
 
@@ -46,6 +48,8 @@ func (s *Session) Listen() {
 	go func() {
 		for {
 			select {
+			case <-s.Done:
+				return
 			case client := <-s.registerCh:
 				s.clients[client.id] = client
 				slog.Info("Session: Registered", "clientID", client.id)
@@ -191,11 +195,17 @@ func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
 				"server",
 				fmt.Sprintf("game over! winner: %s (exiting...)", s.game.Winner()),
 			)
+			close(s.Done)
+
 		}
 	default:
 		return fmt.Errorf("unknown request type: %s", req.Type)
 	}
 	return nil
+}
+
+func (s *Session) GetGameRecord() []game.Event {
+	return s.game.GetGameRecord()
 }
 
 // handleGameEvent handles a game event, and returns the result event

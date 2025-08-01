@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
+	"github.com/yanmoyy/go-go-go/internal/database"
 	"github.com/yanmoyy/go-go-go/internal/server/ws"
 )
 
@@ -58,6 +59,11 @@ func (s *Server) createGameSession(sessionID uuid.UUID) {
 	session := ws.NewGameSession()
 	s.sessions[sessionID] = session
 	session.Listen()
+	go func() {
+		<-session.Done
+		database.CreateGameRecord(s.db, sessionID.String(), session.GetGameRecord())
+		delete(s.sessions, sessionID)
+	}()
 }
 
 func (s *Server) registerClientToSession(sessionID, clientID uuid.UUID, conn *websocket.Conn) {

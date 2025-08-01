@@ -8,7 +8,7 @@ const (
 	maxPlayers               = 2
 	boardWidth       float64 = 100.0
 	boardHeight      float64 = 100.0
-	maxStones                = 1 // each player stones
+	maxStones                = 10 // each player stones
 	whiteStoneStartY         = boardHeight / 4
 	blackStoneStartY         = boardHeight / 4 * 3
 	startX                   = boardWidth / 11
@@ -77,6 +77,9 @@ func (g *Game) GetPlayerStartGameEvent(uuid string) Event {
 	}
 }
 
+func (g *Game) GetGameRecord() []Event {
+	return g.record
+}
 func (g *Game) IsOver() bool {
 	return g.gameOver
 }
