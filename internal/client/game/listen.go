@@ -44,13 +44,17 @@ func (c *GameClient) StartListenConn(done chan struct{}) error {
 						continue
 					}
 					switch m.Type {
-					case api.GameEventMessage:
+					case api.GameEventMsg:
 						err = c.handleGameEvent(m.Data.(game.Event))
 						if err != nil {
 							slog.Error("handleGameEvent", "err", err)
 						}
-					case api.ResponseMessage:
+					case api.ResponseMsg:
 						c.responseCh <- m.Data.(api.Response)
+					case api.ServerMsg:
+						serverMsg := m.Data.(api.ServerMessage)
+						c.serverMessages = append(c.serverMessages, serverMsg)
+						c.UIUpdateCh <- UIUpdate{Reason: ServerMsg}
 					default:
 						slog.Error("unknown message type", "type", m.Type)
 					}
@@ -72,18 +76,14 @@ func (c *GameClient) handleGameEvent(evt game.Event) error {
 			Stones: data.Stones,
 			Size:   data.Size,
 		}
-		c.GameStateCh <- GameStateChange{State: GameStateStart}
+		c.UIUpdateCh <- UIUpdate{Reason: GameStarted}
 	case game.ShootResult:
 		data := evt.Data.(game.ShootResultData)
-		c.AnimationCh <- &data.Animation
+		c.UIUpdateCh <- UIUpdate{Reason: Animation, Data: &data.Animation}
 		c.gameData.Stones = data.Stones
 		c.gameData.Turn = data.Turn
 		if data.IsGameOver {
-			c.GameStateCh <- GameStateChange{State: GameStateOver,
-				Data: map[string]string{
-					"winner": data.Winner,
-				},
-			}
+			c.UIUpdateCh <- UIUpdate{Reason: GameOver, Data: data.Winner}
 		}
 	default:
 		slog.Error("unknown event type", "type", evt.Type)

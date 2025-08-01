@@ -5,27 +5,40 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/yanmoyy/go-go-go/internal/api"
-	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
 type GameClient struct {
-	conn     *websocket.Conn
-	done     chan struct{}
-	gameData *GameData
+	conn           *websocket.Conn
+	done           chan struct{}
+	gameData       *GameData
+	serverMessages []api.ServerMessage
 
 	// channels
-	GameStateCh chan GameStateChange // check if the game is started
-	AnimationCh chan *game.AnimationData
-	responseCh  chan api.Response
+	UIUpdateCh chan UIUpdate
+	responseCh chan api.Response
+}
+
+type Reason string
+
+const (
+	GameStarted Reason = "game_started"
+	Animation   Reason = "animation"
+	ServerMsg   Reason = "server_msg"
+	GameOver    Reason = "game_over"
+)
+
+type UIUpdate struct {
+	Reason Reason
+	Data   any
 }
 
 func NewGameClient(conn *websocket.Conn) *GameClient {
 	return &GameClient{
-		conn:        conn,
-		responseCh:  make(chan api.Response),
-		AnimationCh: make(chan *game.AnimationData),
-		GameStateCh: make(chan GameStateChange),
-		gameData:    &GameData{},
+		conn:           conn,
+		responseCh:     make(chan api.Response),
+		UIUpdateCh:     make(chan UIUpdate),
+		gameData:       &GameData{},
+		serverMessages: []api.ServerMessage{},
 	}
 }
 
@@ -37,6 +50,10 @@ func (c *GameClient) GetGameData() *GameData {
 	return c.gameData
 }
 
+func (c *GameClient) GetServerMessages() []api.ServerMessage {
+	return c.serverMessages
+}
+
 func (c *GameClient) Close() {
 	if c.done != nil {
 		close(c.done)
@@ -44,8 +61,8 @@ func (c *GameClient) Close() {
 	if c.responseCh != nil {
 		close(c.responseCh)
 	}
-	if c.AnimationCh != nil {
-		close(c.AnimationCh)
+	if c.UIUpdateCh != nil {
+		close(c.UIUpdateCh)
 	}
 	slog.Info("game client closed")
 }

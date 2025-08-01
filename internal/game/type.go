@@ -51,6 +51,16 @@ const (
 	Black
 )
 
+func (s StoneType) String() string {
+	switch s {
+	case White:
+		return "White"
+	case Black:
+		return "Black"
+	}
+	return "Unknown"
+}
+
 func (s Stone) String() string {
 	return fmt.Sprintf("Stone{ID: %d, Position: %v, Radius: %f}", s.ID, s.Position, s.Radius)
 }

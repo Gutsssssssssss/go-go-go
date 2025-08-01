@@ -87,7 +87,7 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 	case info := <-replyCh:
 		err := conn.WriteJSON(
 			api.Message{
-				Type: api.MatchMessage,
+				Type: api.MatchMsg,
 				Data: api.MatchData{
 					Status:   api.MatchSuccess,
 					Opponent: info.opponent,
@@ -105,7 +105,7 @@ func (s *Server) HandleWaiting(w http.ResponseWriter, r *http.Request) {
 		close(replyCh)
 		err := conn.WriteJSON(
 			api.Message{
-				Type: api.MatchMessage,
+				Type: api.MatchMsg,
 				Data: api.MatchData{
 					Status:   api.MatchFailed,
 					Opponent: uuid.Nil,

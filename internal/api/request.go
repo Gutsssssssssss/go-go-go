@@ -3,7 +3,7 @@ package api
 import "encoding/json"
 
 const (
-	GameEventRequest = "game_event"
+	GameEventRequest RequestType = "game_event"
 )
 
 type RequestType string

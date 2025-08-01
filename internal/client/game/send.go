@@ -15,7 +15,7 @@ func sendGameEventRequest(conn *websocket.Conn, id string, evt game.Event) error
 		return fmt.Errorf("failed to marshal data: %w", err)
 	}
 	err = sendJSON(conn, api.Message{
-		Type: api.RequestMessage,
+		Type: api.RequestMsg,
 		Data: api.Request{
 			ID:   id,
 			Type: api.GameEventRequest,

@@ -11,15 +11,3 @@ type GameData struct {
 	Stones []game.Stone // all stones info (position, radius, etc)
 	Size   game.Size
 }
-
-type GameState string
-
-const (
-	GameStateStart GameState = "start"
-	GameStateOver  GameState = "over"
-)
-
-type GameStateChange struct {
-	State GameState
-	Data  map[string]string
-}

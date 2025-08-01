@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/yanmoyy/go-go-go/internal/api"
@@ -87,15 +88,6 @@ func (s *Session) Send(msg message) {
 	s.messageCh <- msg
 }
 
-func (s *Session) broadcastGameEvent(evt game.Event) {
-	for id := range s.clients {
-		s.sendClientWithJSON(id, api.Message{
-			Type: api.GameEventMessage,
-			Data: evt,
-		})
-	}
-}
-
 func (s *Session) sendClientWithJSON(clientID uuid.UUID, data any) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -108,7 +100,7 @@ func (s *Session) sendClientWithJSON(clientID uuid.UUID, data any) {
 
 func (s *Session) sendGameEvent(clientID uuid.UUID, evt game.Event) {
 	s.sendClientWithJSON(clientID, api.Message{
-		Type: api.GameEventMessage,
+		Type: api.GameEventMsg,
 		Data: evt,
 	})
 }
@@ -116,7 +108,7 @@ func (s *Session) sendGameEvent(clientID uuid.UUID, evt game.Event) {
 func (s *Session) sendResponse(clientID uuid.UUID, id string, status api.ResponseStatus, message string) {
 	s.sendClientWithJSON(clientID,
 		api.Message{
-			Type: api.ResponseMessage,
+			Type: api.ResponseMsg,
 			Data: api.Response{
 				ID:      id,
 				Status:  status,
@@ -124,6 +116,30 @@ func (s *Session) sendResponse(clientID uuid.UUID, id string, status api.Respons
 			},
 		},
 	)
+}
+
+// ### Broadcast ###
+
+func (s *Session) broadcastGameEvent(evt game.Event) {
+	for id := range s.clients {
+		s.sendClientWithJSON(id, api.Message{
+			Type: api.GameEventMsg,
+			Data: evt,
+		})
+	}
+}
+
+func (s *Session) broadcastServerMessage(t api.ServerMsgType, message string) {
+	for id := range s.clients {
+		s.sendClientWithJSON(id, api.Message{
+			Type: api.ServerMsg,
+			Data: api.ServerMessage{
+				Time:    time.Now(),
+				Type:    t,
+				Message: message,
+			},
+		})
+	}
 }
 
 // handleMessage handles a message from a client
@@ -134,13 +150,14 @@ func (s *Session) handleMessage(msg message) error {
 		return fmt.Errorf("failed to unmarshal message: %w", err)
 	}
 	switch m.Type {
-	case api.RequestMessage:
+	case api.RequestMsg:
 		err = s.handleRequest(msg.clientID, m.Data.(api.Request))
 		if err != nil {
 			return fmt.Errorf("handleRequest: %w", err)
 		}
-	case api.ChatMessage:
-		slog.Info("ChatEvent", "message", string(msg.payload))
+	case api.ChatMsg:
+		data := m.Data.(api.ChatData)
+		s.broadcastServerMessage(api.ServerChat, fmt.Sprintf("%s: %s", data.Name, data.Content))
 	}
 	return nil
 }
@@ -161,19 +178,14 @@ func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
 
 		// broadcast result event
 		s.broadcastGameEvent(res)
-		// switch evt.Type {
-		// case game.Shoot:
-		// 	// broadcast turn start event
-		// 	s.broadcastGameEvent(s.game.NextTurn())
-
-		// }
+		s.broadcastServerMessage(api.ServerGame, getDescription(res))
 	default:
 		return fmt.Errorf("unknown request type: %s", req.Type)
 	}
 	return nil
 }
 
-// handleGameEvent handles a game event, and returns the next event and whether it needs to be broadcasted
+// handleGameEvent handles a game event, and returns the result event
 func (s *Session) handleGameEvent(evt game.Event) (res game.Event, err error) {
 	switch evt.Type {
 	case game.PlayerShoot:

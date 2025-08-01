@@ -57,6 +57,8 @@ type gameOverMsg struct {
 	winner string
 }
 
+type uiUpdateMsg struct{}
+
 type tickMsg struct{}
 
 func NewGamePage() tea.Model {
@@ -112,9 +114,10 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case gameStartedMsg:
 		p.selectedStoneID = p.client.GetCurrentStone(0)
 		return p, p.ListenClient()
+	case uiUpdateMsg:
+		return p, p.ListenClient()
 	case gameOverMsg:
-		// TODO: show winner dialog
-		return p, nil
+		return p, cmd(PagePopMsg{})
 	}
 	return p, nil
 }
@@ -133,7 +136,7 @@ func (p *gamePage) View() string {
 	)
 	boardHeight := p.window.height - MARGIN - HELPHEIGHT
 	boardWidth := 2 * boardHeight
-	sideWidth := (p.window.width - boardWidth) / 2
+	sideWidth := (p.window.width-boardWidth)/2 - 2 // minus for border
 	p.progressOn.Width = sideWidth - 6
 	p.progressOff.Width = sideWidth - 6
 
@@ -148,7 +151,7 @@ func (p *gamePage) View() string {
 				layout.Column(
 					view.Board(
 						view.BoardProps{
-							Width:       sideWidth - 2, // minus for border
+							Width:       sideWidth - 2,
 							Height:      boardHeight/2 - 1,
 							BorderColor: p.getStatusColor(gameView.ControlDirection),
 						},
@@ -176,39 +179,33 @@ func (p *gamePage) View() string {
 				view.BoardProps{
 					Width:       boardWidth,
 					Height:      boardHeight,
-					BorderColor: p.getTurnColor(),
+					BorderColor: p.getStatusColor(gameView.ControlSelectStone),
 				},
-				view.Board(
-					view.BoardProps{
-						Width:       boardWidth - 2,
-						Height:      boardHeight - 2,
-						BorderColor: p.getStatusColor(gameView.ControlSelectStone),
-					},
-					gameView.View(
-						gameView.Props{
-							Width:            boardWidth - 4,
-							Height:           boardHeight - 4,
-							GameData:         p.client.GetGameData(),
-							AnimationsData:   p.animationData,
-							CurAnimationStep: p.currentStep,
-							ControlData: gameView.ControlData{
-								Status:          p.status,
-								SelectedStoneID: p.selectedStoneID,
-								Degrees:         gameView.Degrees(p.degrees),
-								IndicatorColor:  p.getTurnColor(),
-							},
+				gameView.View(
+					gameView.Props{
+						Width:            boardWidth - 2,
+						Height:           boardHeight - 2,
+						GameData:         p.client.GetGameData(),
+						AnimationsData:   p.animationData,
+						CurAnimationStep: p.currentStep,
+						ControlData: gameView.ControlData{
+							Status:          p.status,
+							SelectedStoneID: p.selectedStoneID,
+							Degrees:         gameView.Degrees(p.degrees),
+							IndicatorColor:  p.getTurnColor(),
 						},
-					),
+					},
 				),
 			),
 			view.Board(
 				view.BoardProps{
-					Width:       sideWidth - 2,
+					Width:       sideWidth,
 					Height:      boardHeight,
 					BorderColor: p.getTurnColor(),
 				},
-				layout.Column(
-					"",
+				view.ServerMessages(
+					p.client.GetServerMessages(),
+					view.MessagesProps{Width: sideWidth - 2, Height: boardHeight},
 				),
 			),
 		),
@@ -269,24 +266,21 @@ func (p *gamePage) shootStone() {
 
 func (p *gamePage) ListenClient() tea.Cmd {
 	return func() tea.Msg {
-		select {
-		case data, ok := <-p.client.AnimationCh:
-			if !ok {
-				return nil
-			}
-			return animationMsg{data: data}
-		case state, ok := <-p.client.GameStateCh:
-			if !ok {
-				return nil
-			}
-			switch state.State {
-			case gameClient.GameStateStart:
-				return gameStartedMsg{}
-			case gameClient.GameStateOver:
-				return gameOverMsg{winner: state.Data["winner"]}
-			}
+		update, ok := <-p.client.UIUpdateCh
+		if !ok {
 			return nil
 		}
+		switch update.Reason {
+		case gameClient.GameStarted:
+			return gameStartedMsg{}
+		case gameClient.Animation:
+			return animationMsg{data: update.Data.(*game.AnimationData)}
+		case gameClient.ServerMsg:
+			return uiUpdateMsg{}
+		case gameClient.GameOver:
+			return gameOverMsg{winner: update.Data.(string)}
+		}
+		return nil
 	}
 }
 

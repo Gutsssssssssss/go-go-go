@@ -11,7 +11,7 @@ import (
 func TestUnmarshalMessage(t *testing.T) {
 	t.Run("GameEventMessage", func(t *testing.T) {
 		m := Message{
-			Type: GameEventMessage,
+			Type: GameEventMsg,
 			Data: game.Event{
 				Type: game.PlayerShoot,
 				Data: game.PlayerShootData{
@@ -31,7 +31,7 @@ func TestUnmarshalMessage(t *testing.T) {
 
 	t.Run("ResponseMessage", func(t *testing.T) {
 		m := Message{
-			Type: ResponseMessage,
+			Type: ResponseMsg,
 			Data: Response{
 				ID:      "id",
 				Status:  "status",

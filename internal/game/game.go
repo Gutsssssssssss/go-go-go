@@ -194,6 +194,7 @@ func simulateCollision(movings []moving, stones []Stone, animations []StonePath,
 
 func (g *Game) ShootStone(shootData PlayerShootData) (Event, error) {
 	striking := g.stones[shootData.StoneID]
+	shooter := striking.StoneType.String()
 	if striking.IsOut {
 		return Event{}, fmt.Errorf("stone is out of board")
 	}
@@ -224,6 +225,7 @@ func (g *Game) ShootStone(shootData PlayerShootData) (Event, error) {
 	g.turn = (g.turn + 1) % maxPlayers
 
 	evt := Event{Type: ShootResult, Data: ShootResultData{
+		Shooter: shooter,
 		Animation: AnimationData{
 			InitialStones:    initialStones,
 			Paths:            animations,

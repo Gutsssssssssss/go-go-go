@@ -89,8 +89,10 @@ type PlayerShootData struct {
 }
 
 type ShootResultData struct {
+	Shooter string `json:"shooter"`
 	// Animation
 	Animation AnimationData `json:"animation"`
+
 	// Game Info
 	Stones     []Stone `json:"stones"`
 	Turn       int     `json:"turn"`

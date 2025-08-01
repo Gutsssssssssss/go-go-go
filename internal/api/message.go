@@ -7,24 +7,25 @@ import (
 	"github.com/yanmoyy/go-go-go/internal/game"
 )
 
-type MessageType string
+type MsgType string
 
 const (
-	MatchMessage     MessageType = "match"
-	GameEventMessage MessageType = "game_event"
-	ChatMessage      MessageType = "chat"
-	RequestMessage   MessageType = "request"
-	ResponseMessage  MessageType = "response"
+	MatchMsg     MsgType = "match"
+	GameEventMsg MsgType = "game_event"
+	ChatMsg      MsgType = "chat"   // chat message from client
+	ServerMsg    MsgType = "server" // log message from server
+	RequestMsg   MsgType = "request"
+	ResponseMsg  MsgType = "response"
 )
 
 type Message struct {
-	Type MessageType `json:"type"`
-	Data any         `json:"data"`
+	Type MsgType `json:"type"`
+	Data any     `json:"data"`
 }
 
 func (m *Message) UnmarshalJSON(data []byte) error {
 	var temp struct {
-		Type MessageType     `json:"type"`
+		Type MsgType         `json:"type"`
 		Data json.RawMessage `json:"data"`
 	}
 	err := json.Unmarshal(data, &temp)
@@ -40,25 +41,29 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func unmarshalData(t MessageType, data []byte) (any, error) {
+func unmarshalData(t MsgType, data []byte) (any, error) {
 	switch t {
-	case MatchMessage:
+	case MatchMsg:
 		var d MatchData
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case GameEventMessage:
+	case GameEventMsg:
 		var d game.Event
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case ChatMessage:
-		var d string
+	case ChatMsg:
+		var d ChatData
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case RequestMessage:
+	case ServerMsg:
+		var d ServerMessage
+		err := json.Unmarshal(data, &d)
+		return d, err
+	case RequestMsg:
 		var d Request
 		err := json.Unmarshal(data, &d)
 		return d, err
-	case ResponseMessage:
+	case ResponseMsg:
 		var d Response
 		err := json.Unmarshal(data, &d)
 		return d, err
