@@ -83,9 +83,8 @@ func (c *GameClient) handleGameEvent(evt game.Event) error {
 		c.UIUpdateCh <- UIUpdate{Reason: Animation, Data: &data.Animation}
 		c.gameData.Stones = data.Stones
 		c.gameData.Turn = data.Turn
-		if data.IsGameOver {
-			c.UIUpdateCh <- UIUpdate{Reason: GameOver, Data: data.Winner}
-		}
+	case game.GameOver:
+		c.UIUpdateCh <- UIUpdate{Reason: GameOver}
 	default:
 		slog.Error("unknown event type", "type", evt.Type)
 	}

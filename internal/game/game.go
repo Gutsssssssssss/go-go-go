@@ -8,7 +8,7 @@ const (
 	maxPlayers               = 2
 	boardWidth       float64 = 100.0
 	boardHeight      float64 = 100.0
-	maxStones                = 10 // each player stones
+	maxStones                = 1 // each player stones
 	whiteStoneStartY         = boardHeight / 4
 	blackStoneStartY         = boardHeight / 4 * 3
 	startX                   = boardWidth / 11
@@ -20,11 +20,13 @@ const (
 type playerID int
 
 type Game struct {
-	record  []Event
-	players []Player
-	turn    playerID
-	idMap   map[string]playerID // key: userID, value: playerID (to hide userID)
-	stones  []Stone
+	record   []Event
+	players  []Player
+	turn     playerID
+	idMap    map[string]playerID // key: userID, value: playerID (to hide userID)
+	stones   []Stone
+	gameOver bool
+	winner   string
 }
 
 func NewGame() *Game {
@@ -73,6 +75,14 @@ func (g *Game) GetPlayerStartGameEvent(uuid string) Event {
 			Size:   Size{boardWidth, boardHeight},
 		},
 	}
+}
+
+func (g *Game) IsOver() bool {
+	return g.gameOver
+}
+
+func (g *Game) Winner() string {
+	return g.winner
 }
 
 func (g *Game) placeStones() {
@@ -222,6 +232,11 @@ func (g *Game) ShootStone(shootData PlayerShootData) (Event, error) {
 	}
 	// check game over
 	isOver, winner := checkGameOver(g.stones)
+	if isOver {
+		g.gameOver = isOver
+		g.winner = winner
+	}
+
 	g.turn = (g.turn + 1) % maxPlayers
 
 	evt := Event{Type: ShootResult, Data: ShootResultData{
@@ -231,10 +246,8 @@ func (g *Game) ShootStone(shootData PlayerShootData) (Event, error) {
 			Paths:            animations,
 			MaxAnimationStep: maxStep,
 		},
-		Stones:     g.stones,
-		Turn:       int(g.turn),
-		IsGameOver: isOver,
-		Winner:     winner,
+		Stones: g.stones,
+		Turn:   int(g.turn),
 	}}
 	g.record = append(g.record, evt)
 	return evt, nil

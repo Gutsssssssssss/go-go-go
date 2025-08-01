@@ -180,6 +180,18 @@ func (s *Session) handleRequest(clientID uuid.UUID, req api.Request) error {
 		// broadcast result event
 		s.broadcastGameEvent(res)
 		s.broadcastServerMessage(api.ServerGame, "server", getDescription(res))
+
+		// check game over
+		if s.game.IsOver() {
+			s.broadcastGameEvent(
+				game.Event{Type: game.GameOver, Data: game.GameOverData{Winner: s.game.Winner()}},
+			)
+			s.broadcastServerMessage(
+				api.ServerGame,
+				"server",
+				fmt.Sprintf("game over! winner: %s (exiting...)", s.game.Winner()),
+			)
+		}
 	default:
 		return fmt.Errorf("unknown request type: %s", req.Type)
 	}

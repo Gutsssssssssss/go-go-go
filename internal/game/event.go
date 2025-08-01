@@ -65,6 +65,10 @@ func unmarshalData(t DataType, data []byte) (any, error) {
 		var d ShootResultData
 		err := json.Unmarshal(data, &d)
 		return d, err
+	case GameOver:
+		var d GameOverData
+		err := json.Unmarshal(data, &d)
+		return d, err
 	}
 	return nil, fmt.Errorf("unknown event type: %s", t)
 }
@@ -94,14 +98,16 @@ type ShootResultData struct {
 	Animation AnimationData `json:"animation"`
 
 	// Game Info
-	Stones     []Stone `json:"stones"`
-	Turn       int     `json:"turn"`
-	IsGameOver bool    `json:"isGameOver"`
-	Winner     string  `json:"winner"`
+	Stones []Stone `json:"stones"`
+	Turn   int     `json:"turn"`
 }
 
 type AnimationData struct {
 	InitialStones    []Stone     `json:"initialStones"`
 	Paths            []StonePath `json:"paths"`
 	MaxAnimationStep int         `json:"maxAnimationStep"`
+}
+
+type GameOverData struct {
+	Winner string `json:"winner"`
 }

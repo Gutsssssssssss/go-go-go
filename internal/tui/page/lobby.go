@@ -176,6 +176,7 @@ func (p *lobbyPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return delayedGamePageMsg{}
 		})
 	case delayedGamePageMsg:
+		p.status = lobbyInitial
 		return p, cmd(PageSwitchMsg{ID: GamePage})
 	}
 	return p, nil

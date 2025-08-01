@@ -57,9 +57,7 @@ type animationMsg struct {
 
 type gameStartedMsg struct{}
 
-type gameOverMsg struct {
-	winner string
-}
+type gameOverMsg struct{}
 
 type uiUpdateMsg struct{}
 
@@ -127,7 +125,14 @@ func (p *gamePage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case uiUpdateMsg:
 		return p, p.ListenClient()
 	case gameOverMsg:
-		return p, cmd(PagePopMsg{})
+		var cmds []tea.Cmd
+		cmds = append(cmds, p.ListenClient())
+		// 2 seconds to exit
+		cmds = append(cmds, func() tea.Msg {
+			time.Sleep(2 * time.Second)
+			return PagePopMsg{}
+		})
+		return p, tea.Batch(cmds...)
 	}
 	return p, nil
 }
@@ -297,7 +302,7 @@ func (p *gamePage) ListenClient() tea.Cmd {
 		case gameClient.ServerMsg:
 			return uiUpdateMsg{}
 		case gameClient.GameOver:
-			return gameOverMsg{winner: update.Data.(string)}
+			return gameOverMsg{}
 		}
 		return nil
 	}
@@ -404,7 +409,6 @@ func (p *gamePage) onEnterPressed() tea.Cmd {
 func (p *gamePage) onEscapePressed() tea.Cmd {
 	switch p.status {
 	case gameView.ControlSelectStone:
-		// TODO: quit dialog
 		p.client.Close()
 		return cmd(PagePopMsg{})
 	case gameView.ControlDirection:
