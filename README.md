@@ -3,7 +3,7 @@
 A full-stack multiplayer [Alkkagi (Stone-Shooting)](https://en.wikipedia.org/wiki/Alkkagi) game built entirely in Go, featuring a `terminal user interface (TUI)`, `real-time WebSocket communication` and `game logic with physics`.
 
 <img src="./docs/images/mainPage.png" alt="Game Screenshot" width="600">
-<img src="./docs/images/collision.gif" alt="Game Screenshot" width="600">
+<img src="./docs/images/play-preview.gif" alt="Game Screenshot" width="600">
 
 ## Table of Contents
 - [Project Overview](#project-overview)
