@@ -14,15 +14,20 @@ type Server struct {
 	waitingQueue chan waiting
 	sessions     map[uuid.UUID]*ws.Session
 	removeQueue  chan uuid.UUID
-	db          *sql.DB 
+	cfg          Config
 }
 
-func NewServer(db *sql.DB) *Server {
+type Config struct {
+	UseDB bool
+	DB    *sql.DB
+}
+
+func NewServer(cfg Config) *Server {
 	return &Server{
 		upgrader:     websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024, CheckOrigin: func(r *http.Request) bool { return true }},
 		waitingQueue: make(chan waiting),
 		removeQueue:  make(chan uuid.UUID),
 		sessions:     make(map[uuid.UUID]*ws.Session),
-		db:           db,
+		cfg:          cfg,
 	}
 }

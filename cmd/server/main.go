@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"log"
@@ -21,20 +22,26 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	dbHost := util.EnsureEnvExist("DB_HOST")
-	dbPort := util.EnsureEnvExist("DB_PORT")
-	dbUser := util.EnsureEnvExist("DB_USER")
-	dbPassword := util.EnsureEnvExist("DB_PASSWORD")
-	dbName := util.EnsureEnvExist("DB_NAME")
 	serverPort := util.EnsureEnvExist("SERVER_PORT")
 
-	conn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbPort, dbUser, dbPassword, dbName)
-	db, err := database.NewDB(conn)
-	if err != nil {
-		log.Fatal(err)
+	var cfg server.Config
+	useDB := flag.Bool("db", false, "use database")
+	flag.Parse()
+	if *useDB {
+		dbHost := util.EnsureEnvExist("DB_HOST")
+		dbPort := util.EnsureEnvExist("DB_PORT")
+		dbUser := util.EnsureEnvExist("DB_USER")
+		dbPassword := util.EnsureEnvExist("DB_PASSWORD")
+		dbName := util.EnsureEnvExist("DB_NAME")
+		conn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbPort, dbUser, dbPassword, dbName)
+		db, err := database.NewDB(conn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cfg = server.Config{UseDB: true, DB: db}
 	}
-	s := server.NewServer(db)
 
+	s := server.NewServer(cfg)
 	go s.ListenMatchWaiting()
 
 	mux := http.NewServeMux()

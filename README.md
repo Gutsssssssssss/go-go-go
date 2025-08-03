@@ -8,7 +8,10 @@ A full-stack multiplayer [Alkkagi (Stone-Shooting)](https://en.wikipedia.org/wik
 ## Table of Contents
 - [Project Overview](#project-overview)
 - [How to Play](#how-to-play)
+- [Installation](#installation)
 - [Core Components](#core-components)
+
+<br>
 
 ## Project Overview
 ### 🖥️ **Terminal User Interface (TUI)**
@@ -26,30 +29,98 @@ A full-stack multiplayer [Alkkagi (Stone-Shooting)](https://en.wikipedia.org/wik
 ### 💾 **Recording History**
 - **Game Records**: Automatic recording of all game sessions with saving the event history. ([postgreSQL](https://www.postgresql.org))
 
+<br>
+
 ## How to Play
 1. **Start**: Select the start menu to match with another player. Use arrow keys or `H`, `J`, `K`, `L` keys to navigate. (see below for help)
-
-<img src="./docs/images/selectMenu.gif" alt="Game Screenshot" width="600">
+<br><img src="./docs/images/selectMenu.gif" alt="Game Screenshot" width="600">
 
 2. **Match**: Wait for another player to join your session. when both players are ready, the game starts automatically.
-
-<img src="./docs/images/multi.gif" alt="Game Screenshot" width="600">
+<br><img src="./docs/images/multi.gif" alt="Game Screenshot" width="600">
 
 3. **Game**: Use arrow keys or `H`, `J`, `K`, `L` keys to navigate and **control** your shoot. Press `I` to **chat** with other player. You can **resize** the window to see the game board and stones in more detail.
 
 4. **Win**: If one player has no more stones left, the game ends and exit with an announcement of the winner.
 
+<br>
+
 ### Previews
 
 #### ***Shoot***
+---
+control your shoot's direction and power with arrow keys or `H`, `J`, `K`, `L` keys.
+
 <img src="./docs/images/manipulation.gif" alt="Game Screenshot" width="600">
 
+---
+
+when you shoot, the stone will move with a physics simulation, including friction and collision detection. Make other player's stones out of the board!
+
+<img src="./docs/images/preview_collision.gif" alt="Game Screenshot" width="600">
+
 #### ***Chat*** 
+---
+You can chat with other player or receive game events message from the server.
+
 <img src="./docs/images/chatting.gif" alt="Game Screenshot" width="600" >
 
 #### ***Resize***
+---
+To see the game board and stones in more real shape, you can resize the window.
 <img src="./docs/images/resizing.gif" alt="Game Screenshot" width="600">
 
+<br>
+
+## Installation
+
+#### Prerequisites
+- [Go](https://go.dev/doc/install) (version 1.24.4 or later)
+
+#### 1. Clone the repository
+```bash
+git clone https://github.com/yanmoyy/go-go-go.git
+```
+
+#### 2. Install dependencies
+```bash
+cd go-go-go
+go mod download
+```
+
+*By default, the server and client use `.env` file for configuration. You can use the example file already in the repository.*
+```bash
+# Server
+SERVER_PORT="8080"                # server port
+
+# Client
+HTTP_BASE="http://localhost:8080" # base URL for HTTP requests
+WS_BASE="ws://localhost:8080"     # base URL for WebSocket connections
+```
+
+#### 3. Run the server
+```bash
+go run ./cmd/server
+```
+If you want to save the game history to database, you need to specify the database configuration in `.env` file. And run with `-db` flag.
+
+```bash
+# Database (optional)
+DB_HOST="localhost"               # database host
+DB_PORT="5432"                    # database port
+DB_USER="postgres"                # database user
+DB_PASSWORD="strongpassword"      # database password
+DB_NAME="go-go-go"                # database name
+```
+```bash
+go run ./cmd/server -db
+```
+
+#### 4. Run the client
+```bash
+go run ./cmd/client
+```
+
+<br>
 
 ## Core Components
 

@@ -61,7 +61,12 @@ func (s *Server) createGameSession(sessionID uuid.UUID) {
 	session.Listen()
 	go func() {
 		<-session.Done
-		database.CreateGameRecord(s.db, sessionID.String(), session.GetGameRecord())
+		if s.cfg.UseDB {
+			err := database.CreateGameRecord(s.cfg.DB, sessionID.String(), session.GetGameRecord())
+			if err != nil {
+				slog.Error("Failed to create game record", "error", err)
+			}
+		}
 		delete(s.sessions, sessionID)
 	}()
 }
