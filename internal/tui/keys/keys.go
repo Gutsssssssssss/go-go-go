@@ -61,7 +61,14 @@ func Back() key.Binding {
 func Input() key.Binding {
 	return key.NewBinding(
 		key.WithKeys("i"),
-		key.WithHelp("i", "input"),
+		key.WithHelp("i", "chat"),
+	)
+}
+
+func Escape() key.Binding {
+	return key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "escape chat"),
 	)
 }
 
