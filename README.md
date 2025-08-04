@@ -124,7 +124,7 @@ go run ./cmd/client
 
 ## Core Components
 
->We built this project from scratch to explore the basics of Go and demonstrate its use in a real-world application. Below are the main components of the project:
+>We tried to build this project from scratch to explore the basics of Go and demonstrate its use in a real-world application. Below are the main components of the project:
 
 - **Logging**: Using [Slog](https://pkg.go.dev/log/slog), a structured logger for Go, to debug the application, track game flow, and resolve issues.
 - **Testing**: Go’s testing environment enabled us to write testable code and address complex challenges (e.g., physics and UI rendering). We used [Require](https://pkg.go.dev/github.com/stretchr/testify/require) for assertions.
